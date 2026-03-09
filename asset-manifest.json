@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/Bonetider/static/css/main.37f85e85.css",
+    "main.js": "/Bonetider/static/js/main.becfd3df.js",
+    "index.html": "/Bonetider/index.html",
+    "main.37f85e85.css.map": "/Bonetider/static/css/main.37f85e85.css.map",
+    "main.becfd3df.js.map": "/Bonetider/static/js/main.becfd3df.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.37f85e85.css",
+    "static/js/main.becfd3df.js"
+  ]
+}
