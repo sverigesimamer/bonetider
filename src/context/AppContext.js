@@ -30,15 +30,16 @@ function reducer(state, action) {
   }
 }
 
-const STORAGE_VERSION = 3; // bump this to force-reset old saved settings
+const STORAGE_VERSION = 4; // bump = wipes old cached state
 
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState, (init) => {
     try {
       const raw = JSON.parse(localStorage.getItem('salatState') || '{}');
-      // If storage version is old, discard saved settings (keep location)
       if (!raw.version || raw.version < STORAGE_VERSION) {
-        return { ...init, location: raw.location || null };
+        // Wipe all cached state — force fresh API fetch with correct settings
+        localStorage.removeItem('salatState');
+        return init;
       }
       return {
         ...init,

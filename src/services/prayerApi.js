@@ -3,18 +3,17 @@ import { stripTz } from '../utils/prayerUtils';
 const BASE = 'https://api.aladhan.com/v1';
 
 /**
- * Halva natten = mittpunkten mellan Maghrib och nästa dags Fajr
- * Exempel: Maghrib 17:36, Fajr 04:02
- * → 17:36 + (10h26m / 2) = 17:36 + 5h13m = 22:49
+ * Halva natten = mittpunkten mellan Maghrib och nästa dags Fajr (avrundar uppåt)
+ * Exempel: Maghrib 17:38, Fajr 04:02 → 22:50
  */
 export function calcMidnight(maghrib, fajrNext) {
   if (!maghrib || !fajrNext) return null;
   const [mh, mm] = maghrib.split(':').map(Number);
   const [fh, fm] = fajrNext.split(':').map(Number);
   const maghribMin = mh * 60 + mm;
-  const fajrMin    = fh * 60 + fm + 24 * 60; // nästa dag
-  const totalMin   = fajrMin - maghribMin;    // total nattlängd
-  const midMin     = (maghribMin + Math.round(totalMin / 2)) % (24 * 60);
+  const fajrMin    = fh * 60 + fm + 24 * 60;
+  const totalMin   = fajrMin - maghribMin;
+  const midMin     = (maghribMin + Math.ceil(totalMin / 2)) % (24 * 60);
   return `${String(Math.floor(midMin / 60)).padStart(2,'0')}:${String(midMin % 60).padStart(2,'0')}`;
 }
 
@@ -31,9 +30,15 @@ function mapTimings(t) {
 }
 
 export async function fetchPrayerTimes(lat, lng, dateStr, method = 3) {
-  const res = await fetch(`${BASE}/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=${method}`);
+  const url = `${BASE}/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=${method}`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch prayer times');
   const json = await res.json();
+  // Use the date the API actually returned (as verification)
+  const returnedDate = json.data.date?.gregorian?.date; // "DD-MM-YYYY"
+  if (returnedDate && returnedDate !== dateStr) {
+    console.warn(`Date mismatch: requested ${dateStr}, got ${returnedDate}`);
+  }
   const timings = mapTimings(json.data.timings);
   const hijri   = json.data.date?.hijri;
   return { timings, hijri };

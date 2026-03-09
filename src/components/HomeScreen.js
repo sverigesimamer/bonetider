@@ -94,6 +94,8 @@ export default function HomeScreen() {
       ]);
       const todayTimings = enrichWithMidnight(todayRes.timings, tomorrowTimings.Fajr);
       const tomTimings   = enrichWithMidnight(tomorrowTimings, null);
+      console.log('✅ Laddade tider (idag):', todayRes.timings);
+      console.log('✅ Beräknad Halva natten:', todayTimings.Midnight);
       dispatch({ type: 'SET_PRAYER_TIMES',   payload: todayTimings });
       dispatch({ type: 'SET_TOMORROW_TIMES', payload: tomTimings });
       dispatch({ type: 'SET_HIJRI',          payload: todayRes.hijri });
