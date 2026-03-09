@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/Bonetider/static/css/main.37f85e85.css",
-    "main.js": "/Bonetider/static/js/main.becfd3df.js",
-    "index.html": "/Bonetider/index.html",
-    "main.37f85e85.css.map": "/Bonetider/static/css/main.37f85e85.css.map",
-    "main.becfd3df.js.map": "/Bonetider/static/js/main.becfd3df.js.map"
+    "main.css": "./static/css/main.37f85e85.css",
+    "main.js": "./static/js/main.238f9c06.js",
+    "index.html": "./index.html",
+    "main.37f85e85.css.map": "./static/css/main.37f85e85.css.map",
+    "main.238f9c06.js.map": "./static/js/main.238f9c06.js.map"
   },
   "entrypoints": [
     "static/css/main.37f85e85.css",
-    "static/js/main.becfd3df.js"
+    "static/js/main.238f9c06.js"
   ]
 }
