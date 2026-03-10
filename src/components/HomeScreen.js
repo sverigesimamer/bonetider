@@ -9,6 +9,7 @@ import {
 } from '../utils/prayerUtils';
 import LocationModal from './LocationModal';
 import { reverseGeocode } from '../services/prayerApi';
+import SvgIcon from './SvgIcon';
 
 function enrichWithMidnight(timings, nextFajr) {
   if (!timings) return timings;
@@ -193,6 +194,11 @@ export default function HomeScreen() {
   const activeTimes       = isShowingTomorrow ? tomorrowTimes : prayerTimes;
   const prayerStatus      = getPrayerStatus(prayerTimes, nowSec);
 
+  const PRAYER_ICONS = {
+    Sunrise: 'sunrise',
+    Maghrib: 'sunset',
+  };
+
   const PrayerTable = ({ times, isTomorrow }) => {
     if (!times) return null;
     return (
@@ -202,23 +208,30 @@ export default function HomeScreen() {
           const isPassed = st === 'passed';
           const isActive = st === 'active';
           const isLast   = idx === PRAYER_NAMES.length - 1;
+          const iconName = PRAYER_ICONS[name];
+          const rowColor = isActive ? (T.isDark?'#000':'#fff') : T.text;
           return (
             <div key={name} style={{
               display:'flex', alignItems:'center', justifyContent:'space-between',
-              padding:'13px 16px',
+              padding:'12px 16px',
               borderBottom: isLast ? 'none' : `1px solid ${T.border}`,
               background: isActive ? T.accent : T.card,
-              opacity: isPassed ? 0.3 : 1,
+              opacity: isPassed ? 0.28 : 1,
               transition:'opacity .4s, background .4s',
             }}>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <div style={{ fontSize:16, fontWeight:700, color: isActive ? (T.isDark?'#000':'#fff') : T.text }}>
+                {iconName && (
+                  <SvgIcon name={iconName} size={15} color={isActive ? rowColor : T.textMuted} />
+                )}
+                <div style={{ fontSize:15, fontWeight:600, color:rowColor, fontFamily:"'Inter',system-ui,sans-serif", letterSpacing:'-0.1px' }}>
                   {PRAYER_SWEDISH[name]}
                 </div>
               </div>
               <div style={{
-                fontSize:17, fontWeight:700, fontFamily:"'DM Mono','Courier New',monospace",
-                color: isActive ? (T.isDark?'#000':'#fff') : T.textSecondary,
+                fontSize:17, fontWeight:400,
+                fontFamily:"'DS-Digital','Segment7','Courier New',monospace",
+                letterSpacing:'1px',
+                color: isActive ? rowColor : T.textSecondary,
               }}>
                 {fmt24(times[name])}
               </div>
@@ -239,31 +252,31 @@ export default function HomeScreen() {
       )}
 
       {/* Header */}
-      <div style={{ marginBottom:8, textAlign:'center' }}>
-        <div style={{ fontSize:15, fontWeight:700, color:T.textMuted, textTransform:'capitalize' }}>
+      <div style={{ marginBottom:16, textAlign:'center' }}>
+        <div style={{ fontSize:14, fontWeight:600, color:T.textMuted, textTransform:'capitalize', fontFamily:"'Inter',system-ui,sans-serif", marginBottom:2 }}>
           {dateStr}
         </div>
         {hijriStr && (
-          <div style={{ fontSize:14, color:T.accent, fontWeight:700, marginBottom:4 }}>{hijriStr}</div>
+          <div style={{ fontSize:13, color:T.accent, fontWeight:600, marginBottom:10, fontFamily:"'Inter',system-ui,sans-serif" }}>{hijriStr}</div>
         )}
+        <div style={{ height:6 }}/>
         <button onClick={detectLocation} style={{
           display:'flex', flexDirection:'column', alignItems:'center',
-          background:'none', border:'none', padding:0, cursor:'pointer', width:'100%',
+          background:'none', border:'none', padding:0, cursor:'pointer', width:'100%', gap:2,
         }}>
           {location && (
-            <div style={{ fontSize:11, color:T.textMuted, fontWeight:400, marginBottom:1 }}>
+            <div style={{ fontSize:11, color:T.textMuted, fontWeight:400, fontFamily:"'Inter',system-ui,sans-serif" }}>
               Du följer bönetiderna i
             </div>
           )}
-          <span style={{ fontSize:18, fontWeight:800, color:T.text, lineHeight:1.2 }}>
-            {detecting ? '⏳ Hämtar plats…' : (location ? location.city : 'Välj plats')}
+          <span style={{ fontSize:17, fontWeight:700, color:T.text, lineHeight:1.3, fontFamily:"'Inter',system-ui,sans-serif" }}>
+            {detecting ? 'Hämtar plats…' : (location ? location.city : 'Välj plats')}
           </span>
-          <div style={{ fontSize:11, color:T.textMuted, marginTop:1 }}>
-            {location?.country ? location.country : ''}
-          </div>
-          <div style={{ fontSize:11, color:T.textMuted, opacity:0.55, marginTop:2 }}>
-            Tryck för att byta stad
-          </div>
+          {location?.country && (
+            <div style={{ fontSize:11, color:T.textMuted, fontFamily:"'Inter',system-ui,sans-serif" }}>
+              {location.country}
+            </div>
+          )}
         </button>
       </div>
 
@@ -305,21 +318,21 @@ export default function HomeScreen() {
         ))}</div>
       )}
 
-      {/* Countdown — always fully visible */}
+      {/* Countdown */}
       {prayerTimes && nextPrayer && (
         <div style={{
           background:T.bgSecondary, border:`1px solid ${T.border}`, borderRadius:14,
-          padding:'10px 14px', textAlign:'center', marginBottom:10,
+          padding:'12px 14px 14px', textAlign:'center', marginBottom:14,
           position:'relative', overflow:'hidden', flexShrink:0,
         }}>
-          <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2, background:T.accent, opacity:.6 }}/>
-          <div style={{ fontSize:9, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:T.textMuted, marginBottom:2 }}>
+          <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2, background:T.accent, opacity:.5 }}/>
+          <div style={{ fontSize:9, fontWeight:700, letterSpacing:'1.8px', textTransform:'uppercase', color:T.textMuted, marginBottom:4, fontFamily:"'Inter',system-ui,sans-serif" }}>
             Tid kvar till {PRAYER_SWEDISH[nextPrayer]}
           </div>
-          <div style={{ fontSize:36, fontWeight:800, color:T.text, letterSpacing:'2px', lineHeight:1.1, fontFamily:"'DM Mono','Courier New',monospace" }}>
+          <div style={{ fontSize:42, fontWeight:400, color:T.text, letterSpacing:'3px', lineHeight:1.1, fontFamily:"'DS-Digital','Segment7','Courier New',monospace" }}>
             {fmtCountdown(secondsUntil)}
           </div>
-          <div style={{ fontSize:11, color:T.textMuted, marginTop:3 }}>
+          <div style={{ fontSize:11, color:T.textMuted, marginTop:5, fontFamily:"'Inter',system-ui,sans-serif" }}>
             {PRAYER_SWEDISH[nextPrayer]} kl. {fmt24(prayerTimes[nextPrayer])}
           </div>
         </div>

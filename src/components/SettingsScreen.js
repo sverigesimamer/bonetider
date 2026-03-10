@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { CALC_METHODS } from '../utils/prayerUtils';
 import { searchCity, reverseGeocode } from '../services/prayerApi';
+import SvgIcon from './SvgIcon';
 
 export default function SettingsScreen() {
   const { theme: T, mode, setMode } = useTheme();
@@ -47,12 +48,12 @@ export default function SettingsScreen() {
   };
 
   const themeOptions = [
-    { l:'Mörkt', i:'🌙', v:'dark'   },
-    { l:'Ljust',  i:'☀️', v:'light'  },
-    { l:'System', i:'📱', v:'system' },
+    { l:'Mörkt',  iconName:'moon',        v:'dark'   },
+    { l:'Ljust',  iconName:'sun',         v:'light'  },
+    { l:'System', iconName:'smartphone',  v:'system' },
   ];
 
-  const Row = ({ icon, label, value, onClick, right }) => (
+  const Row = ({ iconName, label, value, onClick, right }) => (
     <div onClick={onClick} style={{
       display:'flex', alignItems:'center', justifyContent:'space-between',
       padding:'14px 16px', borderRadius:14, border:`1px solid ${T.border}`,
@@ -60,10 +61,10 @@ export default function SettingsScreen() {
       WebkitTapHighlightColor:'transparent',
     }}>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-        <span style={{ fontSize:19 }}>{icon}</span>
+        <SvgIcon name={iconName} size={20} color={T.textMuted} />
         <div>
-          <div style={{ fontSize:15, fontWeight:600, color:T.text }}>{label}</div>
-          {value && <div style={{ fontSize:12, color:T.textMuted, marginTop:2 }}>{value}</div>}
+          <div style={{ fontSize:15, fontWeight:600, color:T.text, fontFamily:"'Inter',system-ui,sans-serif" }}>{label}</div>
+          {value && <div style={{ fontSize:12, color:T.textMuted, marginTop:2, fontFamily:"'Inter',system-ui,sans-serif" }}>{value}</div>}
         </div>
       </div>
       {right || (onClick && <span style={{ color:T.textMuted, fontSize:22, lineHeight:1 }}>›</span>)}
@@ -78,57 +79,54 @@ export default function SettingsScreen() {
         padding:'18px 18px 40px', maxHeight:'80vh', overflowY:'auto', animation:'fadeUp .3s ease both',
       }}>
         <div style={{ width:36, height:4, borderRadius:2, background:T.border, margin:'0 auto 16px' }}/>
-        <div style={{ fontSize:19, fontWeight:700, color:T.text, marginBottom:14 }}>{title}</div>
+        <div style={{ fontSize:19, fontWeight:700, color:T.text, marginBottom:14, fontFamily:"'Inter',system-ui,sans-serif" }}>{title}</div>
         {children}
         <button onClick={onClose} style={{
           width:'100%', padding:'13px', borderRadius:12, border:`1px solid ${T.border}`,
           background:'none', color:T.textMuted, fontSize:15, fontWeight:600, cursor:'pointer', marginTop:12,
+          fontFamily:"'Inter',system-ui,sans-serif",
         }}>Avbryt</button>
       </div>
     </div>
   );
 
   const SectionLabel = ({ label }) => (
-    <div style={{ fontSize:11, fontWeight:700, letterSpacing:'1.4px', textTransform:'uppercase', color:T.textMuted, marginBottom:10, marginTop:22, marginLeft:2 }}>
+    <div style={{ fontSize:11, fontWeight:700, letterSpacing:'1.4px', textTransform:'uppercase', color:T.textMuted, marginBottom:10, marginTop:22, marginLeft:2, fontFamily:"'Inter',system-ui,sans-serif" }}>
       {label}
     </div>
   );
 
+  const Toggle = ({ on, onToggle }) => (
+    <div onClick={e => { e.stopPropagation(); onToggle(); }} style={{
+      width:50, height:28, borderRadius:14, cursor:'pointer', transition:'background .25s',
+      background: on ? T.accent : T.border, position:'relative', flexShrink:0,
+    }}>
+      <div style={{
+        position:'absolute', top:3, left: on ? 25 : 3, width:22, height:22,
+        borderRadius:11, background:'#fff', transition:'left .25s', boxShadow:'0 2px 5px rgba(0,0,0,.25)',
+      }}/>
+    </div>
+  );
+
   return (
-    <div style={{ padding:'20px 16px 50px', background:T.bg, minHeight:'100%' }}>
+    <div style={{ padding:'20px 16px 50px', background:T.bg, minHeight:'100%', fontFamily:"'Inter',system-ui,sans-serif" }}>
       <div style={{ fontSize:24, fontWeight:800, color:T.text, letterSpacing:'-0.4px', marginBottom:24, animation:'fadeUp .4s ease both' }}>
         Inställningar
       </div>
 
       <SectionLabel label="Plats" />
 
-      {/* Auto-location toggle */}
-      <Row icon="📡" label="Automatisk plats"
+      <Row iconName="mapArrow" label="Automatisk plats"
         value={settings.autoLocation ? 'Uppdateras automatiskt via GPS' : 'Manuell — tryck för att uppdatera'}
-        right={
-          <div onClick={e => {
-            e.stopPropagation();
-            dispatch({ type:'SET_SETTINGS', payload:{ autoLocation: !settings.autoLocation } });
-          }} style={{
-            width:50, height:28, borderRadius:14, cursor:'pointer', transition:'background .25s',
-            background: settings.autoLocation ? T.accent : T.border, position:'relative', flexShrink:0,
-          }}>
-            <div style={{
-              position:'absolute', top:3, left: settings.autoLocation ? 25 : 3, width:22, height:22,
-              borderRadius:11, background:'#fff', transition:'left .25s', boxShadow:'0 2px 5px rgba(0,0,0,.25)',
-            }}/>
-          </div>
-        }
+        right={<Toggle on={settings.autoLocation} onToggle={() => dispatch({ type:'SET_SETTINGS', payload:{ autoLocation: !settings.autoLocation } })} />}
       />
 
-      {/* Nuvarande stad — alltid synlig */}
-      <Row icon="📍" label="Nuvarande stad"
+      <Row iconName="mapPoint" label="Nuvarande stad"
         value={location ? location.city : 'Ej angiven'}
         onClick={() => setCityModal(true)} />
 
-      {/* Manuell GPS-knapp — bara när auto är av */}
       {!settings.autoLocation && (
-        <Row icon="🔄" label="Hämta min position nu"
+        <Row iconName="mapArrow" label="Hämta min position nu"
           value={detecting ? 'Söker…' : 'Tryck för att uppdatera med GPS'}
           onClick={!detecting ? detectLocation : undefined}
           right={detecting
@@ -138,40 +136,33 @@ export default function SettingsScreen() {
       )}
 
       <SectionLabel label="Bönetider" />
-      <Row icon="📐" label="Beräkningsmetod"
+      <Row iconName="ruler" label="Beräkningsmetod"
         value={CALC_METHODS[settings.calculationMethod]}
         onClick={() => setMethodModal(true)} />
 
       <SectionLabel label="Aviseringar" />
-      <Row icon="🔔" label="Böne-påminnelser" value="Avisering vid varje bönetid"
-        right={
-          <div onClick={e => { e.stopPropagation(); dispatch({ type:'SET_SETTINGS', payload:{ notificationsEnabled:!settings.notificationsEnabled } }); }}
-            style={{
-              width:50, height:28, borderRadius:14, cursor:'pointer', transition:'background .25s',
-              background:settings.notificationsEnabled ? T.accent : T.border, position:'relative', flexShrink:0,
-            }}>
-            <div style={{
-              position:'absolute', top:3, left:settings.notificationsEnabled?25:3, width:22, height:22,
-              borderRadius:11, background:'#fff', transition:'left .25s', boxShadow:'0 2px 5px rgba(0,0,0,.25)',
-            }}/>
-          </div>
-        }
+      <Row iconName={settings.notificationsEnabled ? 'bell' : 'bellOff'} label="Böne-påminnelser" value="Avisering vid varje bönetid"
+        right={<Toggle on={settings.notificationsEnabled} onToggle={() => dispatch({ type:'SET_SETTINGS', payload:{ notificationsEnabled:!settings.notificationsEnabled } })} />}
       />
 
       <SectionLabel label="Utseende" />
       <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:'14px', marginBottom:8 }}>
-        <div style={{ fontSize:15, fontWeight:600, color:T.text, marginBottom:12 }}>🎨  Tema</div>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+          <SvgIcon name="theme" size={18} color={T.textMuted} />
+          <span style={{ fontSize:15, fontWeight:600, color:T.text }}>Tema</span>
+        </div>
         <div style={{ display:'flex', gap:8 }}>
-          {themeOptions.map(({ l, i, v }) => {
+          {themeOptions.map(({ l, iconName, v }) => {
             const active = mode === v;
             return (
               <button key={v} onClick={() => setMode(v)} style={{
                 flex:1, padding:'11px 0', borderRadius:10, cursor:'pointer',
                 background:active?T.accent:T.bgSecondary, border:`1px solid ${active?T.accent:T.border}`,
-                display:'flex', flexDirection:'column', alignItems:'center', gap:4,
-                transition:'all .2s', fontFamily:'inherit', WebkitTapHighlightColor:'transparent',
+                display:'flex', flexDirection:'column', alignItems:'center', gap:6,
+                transition:'all .2s', fontFamily:"'Inter',system-ui,sans-serif",
+                WebkitTapHighlightColor:'transparent',
               }}>
-                <span style={{ fontSize:18 }}>{i}</span>
+                <SvgIcon name={iconName} size={18} color={active?(T.isDark?'#000':'#fff'):T.text} />
                 <span style={{ fontSize:12, fontWeight:600, color:active?(T.isDark?'#000':'#fff'):T.text }}>{l}</span>
               </button>
             );
@@ -183,17 +174,16 @@ export default function SettingsScreen() {
       <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16 }}>
         <div style={{ fontSize:14, color:T.textMuted, lineHeight:'22px' }}>
           <strong style={{ color:T.text }}>Bönetider</strong> — Bönetider & Qibla-kompass<br/>
-          <span style={{ opacity:.7 }}>Version 1.1.0</span>
+          <span style={{ opacity:.7 }}>Version 1.2.0</span>
         </div>
       </div>
 
-      {/* City modal */}
       {cityModal && (
         <ModalSheet title="Byt stad" onClose={() => { setCityModal(false); setQuery(''); setResults([]); }}>
           <div style={{ display:'flex', gap:8, marginBottom:10 }}>
             <input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doSearch()}
               placeholder="Sök stad…" autoFocus
-              style={{ flex:1, padding:'12px 14px', borderRadius:10, border:`1px solid ${T.border}`, background:T.card, color:T.text, fontSize:15 }}/>
+              style={{ flex:1, padding:'12px 14px', borderRadius:10, border:`1px solid ${T.border}`, background:T.card, color:T.text, fontSize:15, fontFamily:"'Inter',system-ui,sans-serif" }}/>
             <button onClick={doSearch} style={{
               padding:'12px 18px', borderRadius:10, background:T.accent,
               color:T.isDark?'#000':'#fff', fontSize:15, fontWeight:700, border:'none', cursor:'pointer',
@@ -202,9 +192,7 @@ export default function SettingsScreen() {
             </button>
           </div>
           {results.map((r, i) => (
-            <div key={i} onClick={()=>selectCity(r)} style={{
-              padding:'12px 4px', borderBottom:`1px solid ${T.border}`, cursor:'pointer',
-            }}>
+            <div key={i} onClick={()=>selectCity(r)} style={{ padding:'12px 4px', borderBottom:`1px solid ${T.border}`, cursor:'pointer' }}>
               <div style={{ fontSize:15, fontWeight:600, color:T.text }}>{r.city}{r.country?`, ${r.country}`:''}</div>
               <div style={{ fontSize:12, color:T.textMuted, marginTop:2 }}>{r.latitude.toFixed(3)}, {r.longitude.toFixed(3)}</div>
             </div>
@@ -212,7 +200,6 @@ export default function SettingsScreen() {
         </ModalSheet>
       )}
 
-      {/* Method modal */}
       {methodModal && (
         <ModalSheet title="Beräkningsmetod" onClose={() => setMethodModal(false)}>
           {Object.entries(CALC_METHODS).map(([key, name]) => {

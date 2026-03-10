@@ -12,7 +12,7 @@ export default function QiblaScreen() {
     compassAvail, loading, error, needsPermission, requestPermission,
   } = useQibla(location);
 
-  const compassSize = Math.min(window.innerWidth - 60, 300);
+  const compassSize = Math.min(window.innerWidth - 120, 270);
 
   return (
     <div style={{ padding:'16px 16px 24px', background:T.bg, minHeight:'100%', display:'flex', flexDirection:'column', alignItems:'center' }}>
@@ -62,7 +62,7 @@ export default function QiblaScreen() {
           )}
 
           {/* Compass — heading drives ring rotation, qiblaDir places Kaaba */}
-          <div style={{ marginBottom:14 }}>
+          <div style={{ marginBottom:14, padding:'28px', overflow:'visible' }}>
             <CompassSVG
               heading={heading}
               qiblaDir={qiblaDir}
