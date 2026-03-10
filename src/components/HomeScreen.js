@@ -43,21 +43,16 @@ function getPrayerStatus(times, nowSec) {
 
   // Between Fajr and Midnight: normal daytime logic
   // Before Fajr (e.g. 03:00): activeIdx=-1, everything is future
-  const countable = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+  const countable = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
   let activeIdx = -1;
   for (let i = 0; i < countable.length; i++) {
     if (secs[countable[i]] <= nowSec) activeIdx = i;
   }
 
   order.forEach(n => {
-    if (n === 'Sunrise') {
-      // Shuruq: never active, just passed or future
-      status[n] = secs[n] <= nowSec ? 'passed' : 'future';
-      return;
-    }
     if (n === 'Midnight') { status[n] = 'future'; return; }
     const idx = countable.indexOf(n);
-    if (activeIdx === -1)         status[n] = 'future';   // before Fajr: all future
+    if (activeIdx === -1)         status[n] = 'future';
     else if (idx < activeIdx)     status[n] = 'passed';
     else if (idx === activeIdx)   status[n] = 'active';
     else                          status[n] = 'future';
@@ -220,14 +215,6 @@ export default function HomeScreen() {
                 <div style={{ fontSize:16, fontWeight:700, color: isActive ? (T.isDark?'#000':'#fff') : T.text }}>
                   {PRAYER_SWEDISH[name]}
                 </div>
-                {isActive && (
-                  <div style={{
-                    fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:.8,
-                    color: T.isDark ? 'rgba(0,0,0,.5)' : 'rgba(255,255,255,.6)',
-                    background: T.isDark ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.2)',
-                    padding:'2px 6px', borderRadius:4,
-                  }}>Pågår nu</div>
-                )}
               </div>
               <div style={{
                 fontSize:17, fontWeight:700, fontFamily:"'DM Mono','Courier New',monospace",
@@ -252,23 +239,32 @@ export default function HomeScreen() {
       )}
 
       {/* Header */}
-      <div style={{ marginBottom:8 }}>
+      <div style={{ marginBottom:8, textAlign:'center' }}>
         <div style={{ fontSize:15, fontWeight:700, color:T.textMuted, textTransform:'capitalize' }}>
           {dateStr}
         </div>
         {hijriStr && (
-          <div style={{ fontSize:14, color:T.accent, fontWeight:700, marginBottom:3 }}>{hijriStr}</div>
+          <div style={{ fontSize:14, color:T.accent, fontWeight:700, marginBottom:4 }}>{hijriStr}</div>
         )}
         <button onClick={detectLocation} style={{
-          display:'flex', alignItems:'center', gap:4,
-          background:'none', border:'none', padding:0, cursor:'pointer',
+          display:'flex', flexDirection:'column', alignItems:'center',
+          background:'none', border:'none', padding:0, cursor:'pointer', width:'100%',
         }}>
-          <span style={{ fontSize:22, fontWeight:800, color:T.text, lineHeight:1.2 }}>{location ? location.city : 'Välj plats'}</span>
-          <span style={{ fontSize:14 }}>{detecting ? '⏳' : '📍'}</span>
+          {location && (
+            <div style={{ fontSize:11, color:T.textMuted, fontWeight:400, marginBottom:1 }}>
+              Du följer bönetiderna i
+            </div>
+          )}
+          <span style={{ fontSize:18, fontWeight:800, color:T.text, lineHeight:1.2 }}>
+            {detecting ? '⏳ Hämtar plats…' : (location ? location.city : 'Välj plats')}
+          </span>
+          <div style={{ fontSize:11, color:T.textMuted, marginTop:1 }}>
+            {location?.country ? location.country : ''}
+          </div>
+          <div style={{ fontSize:11, color:T.textMuted, opacity:0.55, marginTop:2 }}>
+            Tryck för att byta stad
+          </div>
         </button>
-        {location?.country && (
-          <div style={{ fontSize:12, color:T.textMuted }}>{location.country}</div>
-        )}
       </div>
 
       {/* Error */}

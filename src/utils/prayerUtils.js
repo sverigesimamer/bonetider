@@ -31,8 +31,8 @@ export const CALC_METHODS = {
   15: 'Moonsighting Committee (Nordamerika)',
 };
 
-// Which prayers count for "next prayer" countdown (not Shuruq, not Midnight)
-export const PRAYER_NAMES_COUNTABLE = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+// Which prayers count for "next prayer" countdown (includes Shuruq, not Midnight)
+export const PRAYER_NAMES_COUNTABLE = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 
 export function timeToSec(t) {
   if (!t) return 0;
