@@ -278,18 +278,49 @@ export default function HomeScreen() {
         <div style={{ height:6 }}/>
         <button onClick={detectLocation} style={{
           display:'flex', flexDirection:'column', alignItems:'center',
-          background:'none', border:'none', padding:0, cursor:'pointer', width:'100%', gap:2,
+          background:'none', border:'none', padding:0, cursor:'pointer', width:'100%', gap:1,
         }}>
           {location && (
             <div style={{ fontSize:11, color:T.textMuted, fontWeight:400, fontFamily:"'Inter',system-ui,sans-serif" }}>
               Du följer bönetiderna i
             </div>
           )}
-          <span style={{ fontSize:17, fontWeight:700, color:T.text, lineHeight:1.3, fontFamily:"'Inter',system-ui,sans-serif" }}>
-            {detecting ? 'Hämtar plats…' : (location ? location.city : 'Välj plats')}
-          </span>
+          {detecting ? (
+            <span style={{ fontSize:17, fontWeight:700, color:T.text, lineHeight:1.3, fontFamily:"'Inter',system-ui,sans-serif" }}>
+              Hämtar plats…
+            </span>
+          ) : location ? (() => {
+            // Split "Förort, Stad" into two parts
+            const parts = location.city.split(',').map(s => s.trim());
+            const suburb = parts.length > 1 ? parts[0] : null;
+            const city   = parts.length > 1 ? parts.slice(1).join(', ') : parts[0];
+            return (
+              <>
+                {suburb && (
+                  <div style={{
+                    fontSize:11, fontWeight:500, color:T.textMuted,
+                    fontFamily:"'Inter',system-ui,sans-serif",
+                    maxWidth:'90%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                  }}>
+                    {suburb}
+                  </div>
+                )}
+                <span style={{
+                  fontSize:19, fontWeight:800, color:T.text, lineHeight:1.2,
+                  fontFamily:"'Inter',system-ui,sans-serif", letterSpacing:'-0.3px',
+                  maxWidth:'90%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                }}>
+                  {city}
+                </span>
+              </>
+            );
+          })() : (
+            <span style={{ fontSize:17, fontWeight:700, color:T.text, fontFamily:"'Inter',system-ui,sans-serif" }}>
+              Välj plats
+            </span>
+          )}
           {location?.country && (
-            <div style={{ fontSize:11, color:T.textMuted, fontFamily:"'Inter',system-ui,sans-serif" }}>
+            <div style={{ fontSize:11, color:T.textMuted, fontFamily:"'Inter',system-ui,sans-serif", marginTop:1 }}>
               {location.country}
             </div>
           )}
