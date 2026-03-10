@@ -3,7 +3,8 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { useCountdown } from '../hooks/useCountdown';
 import { fetchPrayerTimes, fetchTomorrowPrayerTimes, calcMidnight } from '../services/prayerApi';
-import IslamNuLogo from '../icons/islamnu-logga-white.svg';
+import IslamNuLogoWhite from '../icons/islamnu-logga-white.svg';
+import IslamNuLogoTeal  from '../icons/islamnu-logga-teal.svg';
 import {
   PRAYER_NAMES, PRAYER_SWEDISH, fmt24, fmtCountdown,
   getTodayDateStr, timeToSec, swedishDate, formatHijri,
@@ -255,9 +256,9 @@ export default function HomeScreen() {
       {/* Header */}
       <div style={{ marginBottom:16, textAlign:'center', position:'relative' }}>
 
-        {/* Logo — theme-aware color */}
+        {/* Logo — theme-aware: teal SVG in light, white+gold filter in dark */}
         <img
-          src={IslamNuLogo}
+          src={T.isDark ? IslamNuLogoWhite : IslamNuLogoTeal}
           alt=""
           style={{
             position:'absolute', top:0, left:8,
@@ -265,7 +266,7 @@ export default function HomeScreen() {
             opacity: T.isDark ? 0.18 : 1,
             filter: T.isDark
               ? 'sepia(1) saturate(3) hue-rotate(5deg) brightness(1.1)'
-              : 'sepia(1) saturate(8) hue-rotate(118deg) brightness(0.5)',
+              : 'none',
             pointerEvents:'none',
             userSelect:'none',
           }}
