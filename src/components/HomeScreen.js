@@ -76,7 +76,7 @@ export default function HomeScreen() {
   const [now,              setNow]              = useState(new Date());
   const [slideIndex,       setSlideIndex]       = useState(0);
   const touchStartX = useRef(null);
-  const { banner, visible: bannerVisible, dismiss: dismissBanner } = useBanner();
+  const { banners, dismiss: dismissBanner } = useBanner();
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -418,9 +418,9 @@ export default function HomeScreen() {
         </>
       )}
 
-      {/* ── ADMIN BANNER ── */}
-      {bannerVisible && banner && (
-        <div style={{
+      {/* ── ADMIN BANNERS ── */}
+      {banners.map(banner => (
+        <div key={banner.id} style={{
           marginTop: 14,
           background: T.card,
           border: `1px solid ${T.accent}`,
@@ -473,9 +473,9 @@ export default function HomeScreen() {
               </a>
             )}
           </div>
-          {/* Close button */}
+          {/* Close */}
           <button
-            onClick={dismissBanner}
+            onClick={() => dismissBanner(banner.id)}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               color: T.textMuted, fontSize: 18, lineHeight: 1,
@@ -485,7 +485,7 @@ export default function HomeScreen() {
             aria-label="Stäng"
           >×</button>
         </div>
-      )}
+      ))}
     </div>
   );
 }
