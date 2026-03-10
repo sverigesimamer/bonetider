@@ -5,7 +5,7 @@ const ThemeContext = createContext({ theme: dark, isDark: true, setMode: () => {
 
 export function ThemeProvider({ children }) {
   const [mode, setModeState] = useState(() => {
-    return localStorage.getItem('bonetiderTheme') || 'dark';
+    return localStorage.getItem('bonetiderTheme') || 'system';
   });
 
   const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
