@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useCountdown } from '../hooks/useCountdown';
 import { fetchPrayerTimes, fetchTomorrowPrayerTimes, calcMidnight } from '../services/prayerApi';
 import IslamNuLogoWhite from '../icons/islamnu-logga-white.svg';
-import IslamNuLogoTeal  from '../icons/islamnu-logga-teal.svg';
+import IslamNuLogoTeal  from '../icons/islamnu-logga-light.svg';
 import {
   PRAYER_NAMES, PRAYER_SWEDISH, fmt24, fmtCountdown,
   getTodayDateStr, timeToSec, swedishDate, formatHijri,
