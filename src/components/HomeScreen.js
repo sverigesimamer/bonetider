@@ -12,6 +12,7 @@ import {
 import LocationModal from './LocationModal';
 import { reverseGeocode } from '../services/prayerApi';
 import { useBanner } from '../hooks/useBanner';
+import SvgIcon from './SvgIcon';
 
 function enrichWithMidnight(timings, nextFajr) {
   if (!timings) return timings;
@@ -432,10 +433,17 @@ export default function HomeScreen() {
           animation: 'fadeUp .35s ease both',
           boxShadow: `0 4px 20px ${T.accentGlow}`,
         }}>
-          {/* Icon */}
-          <div style={{
-            fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 1,
-          }}>🕌</div>
+          {/* Logo */}
+          <img
+            src={T.isDark ? IslamNuLogoWhite : IslamNuLogoTeal}
+            alt=""
+            style={{
+              width: 22, height: 22, flexShrink: 0, marginTop: 1,
+              opacity: T.isDark ? 0.7 : 1,
+              filter: T.isDark ? 'sepia(1) saturate(3) hue-rotate(5deg) brightness(1.1)' : 'none',
+              objectFit: 'contain',
+            }}
+          />
           {/* Text */}
           <div style={{
             flex: 1,
@@ -445,6 +453,25 @@ export default function HomeScreen() {
             fontFamily: "'Inter',system-ui,sans-serif",
           }}>
             {banner.message}
+            {banner.linkText && banner.linkUrl && (
+              <a
+                href={banner.linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'block',
+                  marginTop: 8,
+                  color: T.accent,
+                  fontWeight: 700,
+                  fontSize: 13,
+                  textDecoration: 'underline',
+                  textUnderlineOffset: 3,
+                  fontFamily: "'Inter',system-ui,sans-serif",
+                }}
+              >
+                {banner.linkText} →
+              </a>
+            )}
           </div>
           {/* Close button */}
           <button
