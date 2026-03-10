@@ -71,7 +71,7 @@ export default function MonthlyScreen() {
     fontFamily: isHdr ? 'inherit' : "'DM Mono','Courier New',monospace",
     color: isHdr
       ? T.textMuted
-      : isT ? (T.isDark?'#000':'#fff') : T.text,
+      : isT ? ('#fff') : T.text,
     textTransform: isHdr ? 'uppercase' : 'none',
     letterSpacing: isHdr ? .5 : 0,
     lineHeight: 1,
@@ -152,7 +152,7 @@ export default function MonthlyScreen() {
               }}>
                 {/* Day number */}
                 <div style={{ width:DAY_W, flexShrink:0, textAlign:'center' }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:ht?(T.isDark?'#000':'#fff'):T.text, lineHeight:1 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:ht?('#fff'):T.text, lineHeight:1 }}>
                     {d.gregorianDay}
                   </div>
                   {ht && (

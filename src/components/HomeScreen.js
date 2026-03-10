@@ -480,7 +480,7 @@ export default function HomeScreen() {
           <div style={{ fontSize:13, color:T.textMuted, lineHeight:1.6, maxWidth:260, margin:'0 auto 20px' }}>
             Vi behöver din plats för att visa korrekta bönetider.
           </div>
-          <button onClick={detectLocation} style={{ padding:'12px 26px', borderRadius:13, background:T.accent, color:T.isDark?'#000':'#fff', fontSize:14, fontWeight:700, border:'none', cursor:'pointer' }}>
+          <button onClick={detectLocation} style={{ padding:'12px 26px', borderRadius:13, background:T.accent, color:'#fff', fontSize:14, fontWeight:700, border:'none', cursor:'pointer' }}>
             Hitta min plats
           </button>
         </div>

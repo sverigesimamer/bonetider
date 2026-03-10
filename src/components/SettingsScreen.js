@@ -197,9 +197,9 @@ export default function SettingsScreen() {
                 transition:'all .2s', fontFamily:"'Inter',system-ui,sans-serif",
                 WebkitTapHighlightColor:'transparent',
               }}>
-                <SvgIcon name={iconName} size={18} color={active?(T.isDark?'#000':'#fff'):T.text} />
+                <SvgIcon name={iconName} size={18} color={active?('#fff'):T.text} />
                 <span style={{ fontSize:12, fontWeight:600,
-                  color:active?(T.isDark?'#000':'#fff'):T.text }}>{l}</span>
+                  color:active?('#fff'):T.text }}>{l}</span>
               </button>
             );
           })}
@@ -233,7 +233,7 @@ export default function SettingsScreen() {
                 outline:'none' }}/>
             <button onClick={doSearch} style={{
               padding:'12px 18px', borderRadius:10, background:T.accent,
-              color:T.isDark?'#000':'#fff', fontSize:15, fontWeight:700,
+              color:'#fff', fontSize:15, fontWeight:700,
               border:'none', cursor:'pointer' }}>
               {searching ? '…' : '🔍'}
             </button>

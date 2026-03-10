@@ -58,7 +58,7 @@ export default function QiblaScreen() {
               </div>
               <button onClick={requestPermission} style={{
                 width:'100%', padding:'12px', borderRadius:11,
-                background:T.accent, color:T.isDark?'#000':'#fff',
+                background:T.accent, color:'#fff',
                 fontSize:14, fontWeight:700, border:'none', cursor:'pointer',
               }}>Tillåt kompass</button>
             </div>
