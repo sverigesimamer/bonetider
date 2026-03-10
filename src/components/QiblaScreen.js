@@ -88,38 +88,15 @@ export default function QiblaScreen() {
           )}
 
           {/* Compass */}
-          <div style={{
-            filter:`drop-shadow(0 8px 32px ${isAligned ? 'rgba(76,175,130,.5)' : T.accentGlow})`,
-            marginBottom:14, transition:'filter .6s',
-          }}>
+          <div style={{ marginBottom:14 }}>
             <CompassSVG
               animNeedle={animVal}
               qiblaDir={qiblaDir}
+              heading={heading}
               isAligned={isAligned}
               theme={T}
               size={compassSize}
             />
-          </div>
-
-          {/* Aligned / degrees status */}
-          <div style={{ height:38, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:12 }}>
-            {isAligned ? (
-              <div style={{
-                display:'flex', alignItems:'center', gap:8,
-                padding:'8px 20px', borderRadius:100,
-                background:'rgba(76,175,130,.12)', border:'1.5px solid #4CAF82',
-                animation:'pop .3s cubic-bezier(.34,1.56,.64,1) both',
-              }}>
-                <span style={{ fontSize:15 }}>✅</span>
-                <span style={{ fontSize:14, fontWeight:700, color:'#4CAF82' }}>Du vänder dig mot Qibla</span>
-              </div>
-            ) : (
-              <div style={{ fontSize:13, color:T.textMuted, textAlign:'center' }}>
-                {qiblaDir !== null
-                  ? `Qibla: ${qiblaDir.toFixed(1)}° från norr · ${alignDelta.toFixed(0)}° kvar`
-                  : 'Beräknar…'}
-              </div>
-            )}
           </div>
 
           {/* Info cards */}
