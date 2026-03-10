@@ -11,6 +11,7 @@ export default function SettingsScreen() {
 
   const [cityModal,   setCityModal]   = useState(false);
   const [methodModal, setMethodModal] = useState(false);
+  const [schoolModal, setSchoolModal] = useState(false);
   const [query,       setQuery]       = useState('');
   const [results,     setResults]     = useState([]);
   const [searching,   setSearching]   = useState(false);
@@ -140,6 +141,10 @@ export default function SettingsScreen() {
         value={CALC_METHODS[settings.calculationMethod]}
         onClick={() => setMethodModal(true)} />
 
+      <Row iconName="book" label="Rättsskola"
+        value={settings.school === 0 ? "Standard (Shafi'i, Maliki, Hanbali)" : "Hanafi"}
+        onClick={() => setSchoolModal(true)} />
+
       <SectionLabel label="Aviseringar" />
       <Row iconName={settings.notificationsEnabled ? 'bell' : 'bellOff'} label="Böne-påminnelser" value="Avisering vid varje bönetid"
         right={<Toggle on={settings.notificationsEnabled} onToggle={() => dispatch({ type:'SET_SETTINGS', payload:{ notificationsEnabled:!settings.notificationsEnabled } })} />}
@@ -201,7 +206,34 @@ export default function SettingsScreen() {
         </ModalSheet>
       )}
 
-      {methodModal && (
+      {schoolModal && (
+        <ModalSheet title="Rättsskola" onClose={() => setSchoolModal(false)}>
+          <div style={{ fontSize:13, color:T.textMuted, marginBottom:14, lineHeight:1.6 }}>
+            Påverkar beräkningen av Asr-bönen. Välj enligt din madhab.
+          </div>
+          {[
+            { v:0, label:"Standard", sub:"Shafi'i, Maliki, Hanbali" },
+            { v:1, label:"Hanafi",   sub:"Asr när skuggan är dubbelt så lång" },
+          ].map(({ v, label, sub }) => {
+            const active = settings.school === v;
+            return (
+              <div key={v}
+                onClick={() => { dispatch({ type:'SET_SETTINGS', payload:{ school: v } }); setSchoolModal(false); }}
+                style={{
+                  padding:'14px 12px', borderBottom:`1px solid ${T.border}`, cursor:'pointer',
+                  display:'flex', justifyContent:'space-between', alignItems:'center',
+                  background: active ? `${T.accent}18` : 'none', borderRadius: active ? 10 : 0,
+                }}>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:600, color:T.text }}>{label}</div>
+                  <div style={{ fontSize:12, color:T.textMuted, marginTop:2 }}>{sub}</div>
+                </div>
+                {active && <span style={{ color:T.accent, fontSize:20, fontWeight:700 }}>✓</span>}
+              </div>
+            );
+          })}
+        </ModalSheet>
+      )}
         <ModalSheet title="Beräkningsmetod" onClose={() => setMethodModal(false)}>
           {Object.entries(CALC_METHODS).map(([key, name]) => {
             const active = settings.calculationMethod === parseInt(key);

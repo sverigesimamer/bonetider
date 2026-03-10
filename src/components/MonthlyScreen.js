@@ -30,7 +30,7 @@ export default function MonthlyScreen() {
     setLoading(true); setError(null);
     try {
       const data = await fetchMonthlyTimes(
-        location.latitude, location.longitude, month, year, settings.calculationMethod
+        location.latitude, location.longitude, month, year, settings.calculationMethod, settings.school
       );
       // Enrich each day with Midnight calculated from Maghrib + next day's Fajr
       const enriched = data.map((d, i) => {

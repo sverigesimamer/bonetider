@@ -80,14 +80,14 @@ export default function HomeScreen() {
     return () => clearInterval(id);
   }, []);
 
-  const loadPrayers = useCallback(async (loc, method) => {
+  const loadPrayers = useCallback(async (loc, method, school = 0) => {
     if (!loc) return;
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR',   payload: null });
     try {
       const [todayRes, tomorrowTimings] = await Promise.all([
-        fetchPrayerTimes(loc.latitude, loc.longitude, getTodayDateStr(), method),
-        fetchTomorrowPrayerTimes(loc.latitude, loc.longitude, method),
+        fetchPrayerTimes(loc.latitude, loc.longitude, getTodayDateStr(), method, school),
+        fetchTomorrowPrayerTimes(loc.latitude, loc.longitude, method, school),
       ]);
       const todayTimings = enrichWithMidnight(todayRes.timings, tomorrowTimings.Fajr);
       const tomTimings   = enrichWithMidnight(tomorrowTimings, null);
@@ -102,8 +102,8 @@ export default function HomeScreen() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (location) loadPrayers(location, settings.calculationMethod);
-  }, [location, settings.calculationMethod, loadPrayers]);
+    if (location) loadPrayers(location, settings.calculationMethod, settings.school);
+  }, [location, settings.calculationMethod, settings.school, loadPrayers]);
 
   // Silent GPS update — just saves location, no dialog
   const silentDetect = useCallback(async () => {
@@ -260,8 +260,8 @@ export default function HomeScreen() {
           src={IslamNuLogo}
           alt=""
           style={{
-            position:'absolute', top:0, left:0,
-            width:44, height:44,
+            position:'absolute', top:0, left:8,
+            width:88, height:88,
             opacity:0.18,
             filter:`sepia(1) saturate(3) hue-rotate(5deg) brightness(1.1)`,
             pointerEvents:'none',
@@ -303,7 +303,7 @@ export default function HomeScreen() {
           background:'rgba(255,80,80,0.08)', marginBottom:8, fontSize:12, color:'#FF6B6B',
         }}>
           ⚠️ {error}
-          <button onClick={() => loadPrayers(location, settings.calculationMethod)}
+          <button onClick={() => loadPrayers(location, settings.calculationMethod, settings.school)}
             style={{ marginLeft:6, color:T.accent, background:'none', border:'none', fontWeight:700, cursor:'pointer', fontSize:12 }}>
             Försök igen
           </button>

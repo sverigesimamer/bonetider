@@ -29,8 +29,8 @@ function mapTimings(t) {
   };
 }
 
-export async function fetchPrayerTimes(lat, lng, dateStr, method = 3) {
-  const url = `${BASE}/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=${method}`;
+export async function fetchPrayerTimes(lat, lng, dateStr, method = 3, school = 0) {
+  const url = `${BASE}/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=${method}&school=${school}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch prayer times');
   const json = await res.json();
@@ -39,19 +39,19 @@ export async function fetchPrayerTimes(lat, lng, dateStr, method = 3) {
   return { timings, hijri };
 }
 
-export async function fetchTomorrowPrayerTimes(lat, lng, method = 3) {
+export async function fetchTomorrowPrayerTimes(lat, lng, method = 3, school = 0) {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const ds = `${String(tomorrow.getDate()).padStart(2,'0')}-${String(tomorrow.getMonth()+1).padStart(2,'0')}-${tomorrow.getFullYear()}`;
-  const res = await fetch(`${BASE}/timings/${ds}?latitude=${lat}&longitude=${lng}&method=${method}`);
+  const res = await fetch(`${BASE}/timings/${ds}?latitude=${lat}&longitude=${lng}&method=${method}&school=${school}`);
   if (!res.ok) throw new Error('Failed to fetch tomorrow');
   const json = await res.json();
   return mapTimings(json.data.timings);
 }
 
 
-export async function fetchMonthlyTimes(lat, lng, month, year, method = 3) {
-  const res = await fetch(`${BASE}/calendar/${year}/${month}?latitude=${lat}&longitude=${lng}&method=${method}`);
+export async function fetchMonthlyTimes(lat, lng, month, year, method = 3, school = 0) {
+  const res = await fetch(`${BASE}/calendar/${year}/${month}?latitude=${lat}&longitude=${lng}&method=${method}&school=${school}`);
   if (!res.ok) throw new Error('Failed to fetch monthly times');
   const json = await res.json();
   return json.data.map(day => ({

@@ -10,6 +10,7 @@ const initialState = {
   monthlyTimes:  null,
   settings: {
     calculationMethod: 3,
+    school: 0,
     notificationsEnabled: true,
     autoLocation: true,
   },
