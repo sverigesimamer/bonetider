@@ -108,13 +108,29 @@ export default function HomeScreen() {
     if (location) loadPrayers(location, settings.calculationMethod);
   }, [location, settings.calculationMethod, loadPrayers]);
 
-  // On first load: get GPS position if auto is enabled
+  // Silent GPS update — just saves location, no dialog
+  const silentDetect = useCallback(async () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const geo = await reverseGeocode(latitude, longitude);
+          dispatch({ type: 'SET_LOCATION', payload: { latitude, longitude, ...geo } });
+        } catch { /* silent */ }
+      },
+      () => { /* silent fail */ },
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
+    );
+  }, [dispatch]);
+
+  // On first load: silently detect if no location saved yet
   useEffect(() => {
-    if (!location) detectLocation();
+    if (!location) silentDetect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Continuous GPS watch — only when autoLocation is on
+  // Continuous GPS watch — silent updates every ~500m move
   const lastCoordsRef = useRef(null);
   useEffect(() => {
     if (!navigator.geolocation || !settings.autoLocation) return;
@@ -125,7 +141,7 @@ export default function HomeScreen() {
         if (prev) {
           const dlat = Math.abs(latitude  - prev.latitude);
           const dlng = Math.abs(longitude - prev.longitude);
-          if (dlat < 0.005 && dlng < 0.005) return; // ~500m threshold
+          if (dlat < 0.005 && dlng < 0.005) return;
         }
         lastCoordsRef.current = { latitude, longitude };
         try {
@@ -140,6 +156,7 @@ export default function HomeScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.autoLocation]);
 
+  // Manual tap on city name — opens search modal
   const detectLocation = async () => {
     if (!navigator.geolocation) { setDetectedLocation(null); setShowModal(true); return; }
     setDetecting(true);

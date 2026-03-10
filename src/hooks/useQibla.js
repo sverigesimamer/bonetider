@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchQiblaDirection } from '../services/prayerApi';
 
 const ALIGN_TOL = 5;
+const PERM_KEY  = 'compassPermission'; // cached in localStorage
 
 function angleDelta(a, b) {
   const d = Math.abs(a - b) % 360;
@@ -35,16 +36,17 @@ export function useQibla(location) {
   const [compassAvail, setCompassAvail] = useState(false);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState(null);
+  // null = not asked yet, 'granted' = cached yes, 'denied' = cached no
+  const [permState,    setPermState]    = useState(() => localStorage.getItem(PERM_KEY) || null);
 
-  const smoothedRef  = useRef(0);
-  const prevNeedle   = useRef(0);
-  const wasAligned   = useRef(false);
-  const qiblaDirRef  = useRef(null);
+  const smoothedRef = useRef(0);
+  const prevNeedle  = useRef(0);
+  const wasAligned  = useRef(false);
+  const qiblaDirRef = useRef(null);
 
-  // Fetch Qibla from AlAdhan
+  // Fetch Qibla direction
   const fetchDir = useCallback(async (lat, lng) => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const dir = await fetchQiblaDirection(lat, lng);
       setQiblaDir(dir);
@@ -55,23 +57,20 @@ export function useQibla(location) {
       setQiblaDir(fallback);
       qiblaDirRef.current = fallback;
     } finally {
-      setLoading(false);
-    }
+      setLoading(false); }
   }, []);
 
   useEffect(() => {
     if (location) fetchDir(location.latitude, location.longitude);
   }, [location, fetchDir]);
 
-  // DeviceOrientationEvent for compass heading (web)
-  useEffect(() => {
+  // Attach orientation listener
+  const attachListener = useCallback(() => {
     const handleOrientation = (e) => {
       let h = 0;
       if (e.webkitCompassHeading != null) {
-        // iOS Safari: webkitCompassHeading is already 0=North
         h = e.webkitCompassHeading;
       } else if (e.alpha != null) {
-        // Android/Chrome: alpha is degrees from North, clockwise from user's perspective
         h = (360 - e.alpha) % 360;
       } else return;
 
@@ -84,58 +83,81 @@ export function useQibla(location) {
         let diff = target - prevNeedle.current;
         if (diff > 180)  diff -= 360;
         if (diff < -180) diff += 360;
-        prevNeedle.current = prevNeedle.current + diff;
+        prevNeedle.current += diff;
         setNeedleAngle(prevNeedle.current);
 
         const delta = angleDelta(smoothed, qiblaDirRef.current);
         setAlignDelta(delta);
         const aligned = delta <= ALIGN_TOL;
         setIsAligned(aligned);
-        if (aligned && !wasAligned.current && navigator.vibrate) {
-          navigator.vibrate([60, 30, 60]);
-        }
+        if (aligned && !wasAligned.current && navigator.vibrate) navigator.vibrate([60, 30, 60]);
         wasAligned.current = aligned;
       }
     };
 
-    const requestPermission = async () => {
-      // iOS 13+ requires permission
-      if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
-        try {
-          const perm = await DeviceOrientationEvent.requestPermission();
-          if (perm === 'granted') {
-            window.addEventListener('deviceorientationabsolute', handleOrientation, true);
-            window.addEventListener('deviceorientation', handleOrientation, true);
-            setCompassAvail(true);
-          }
-        } catch { setCompassAvail(false); }
-      } else if ('DeviceOrientationEvent' in window) {
-        window.addEventListener('deviceorientationabsolute', handleOrientation, true);
-        window.addEventListener('deviceorientation', handleOrientation, true);
-        setCompassAvail(true);
-      } else {
-        setCompassAvail(false);
-      }
-    };
-
-    requestPermission();
+    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    window.addEventListener('deviceorientation',         handleOrientation, true);
+    setCompassAvail(true);
 
     return () => {
       window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
-      window.removeEventListener('deviceorientation', handleOrientation, true);
+      window.removeEventListener('deviceorientation',         handleOrientation, true);
     };
   }, []);
 
-  // When no compass — animate needle for demo
+  // On mount: start compass based on cached permission or device support
+  useEffect(() => {
+    if (!('DeviceOrientationEvent' in window)) {
+      setCompassAvail(false);
+      return;
+    }
+
+    // iOS needs explicit permission
+    if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
+      const cached = localStorage.getItem(PERM_KEY);
+      if (cached === 'granted') {
+        // Already granted — attach directly (iOS remembers the grant in session)
+        const cleanup = attachListener();
+        return cleanup;
+      }
+      // Not yet asked — caller will show permission UI
+      return;
+    }
+
+    // Android / non-iOS — no permission needed
+    const cleanup = attachListener();
+    return cleanup;
+  }, [attachListener]);
+
+  // Permission request called from UI
+  const requestPermission = useCallback(async () => {
+    try {
+      const result = await DeviceOrientationEvent.requestPermission();
+      localStorage.setItem(PERM_KEY, result);
+      setPermState(result);
+      if (result === 'granted') attachListener();
+    } catch {
+      localStorage.setItem(PERM_KEY, 'denied');
+      setPermState('denied');
+    }
+  }, [attachListener]);
+
+  // Static needle when no compass
   useEffect(() => {
     if (compassAvail || !qiblaDirRef.current) return;
     const target = (qiblaDirRef.current + 360) % 360;
     let diff = target - prevNeedle.current;
-    if (diff > 180) diff -= 360;
+    if (diff > 180)  diff -= 360;
     if (diff < -180) diff += 360;
-    prevNeedle.current = prevNeedle.current + diff;
+    prevNeedle.current += diff;
     setNeedleAngle(prevNeedle.current);
   }, [qiblaDir, compassAvail]);
 
-  return { qiblaDir, heading, needleAngle, alignDelta, isAligned, compassAvail, loading, error };
+  const needsPermission = typeof DeviceOrientationEvent?.requestPermission === 'function'
+    && permState !== 'granted';
+
+  return {
+    qiblaDir, heading, needleAngle, alignDelta, isAligned,
+    compassAvail, loading, error, needsPermission, requestPermission, permState
+  };
 }
