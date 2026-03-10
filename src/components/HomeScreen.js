@@ -236,21 +236,21 @@ export default function HomeScreen() {
 
       {/* Header */}
       <div style={{ marginBottom:8 }}>
-        <div style={{ fontSize:11, fontWeight:600, color:T.textMuted, textTransform:'capitalize' }}>
+        <div style={{ fontSize:15, fontWeight:700, color:T.textMuted, textTransform:'capitalize' }}>
           {dateStr}
         </div>
         {hijriStr && (
-          <div style={{ fontSize:11, color:T.accent, fontWeight:600, marginBottom:2 }}>{hijriStr}</div>
+          <div style={{ fontSize:14, color:T.accent, fontWeight:700, marginBottom:3 }}>{hijriStr}</div>
         )}
         <button onClick={detectLocation} style={{
           display:'flex', alignItems:'center', gap:4,
           background:'none', border:'none', padding:0, cursor:'pointer',
         }}>
-          <span style={{ fontSize:18, fontWeight:800, color:T.text, lineHeight:1.2 }}>{location ? location.city : 'Välj plats'}</span>
-          <span style={{ fontSize:13 }}>{detecting ? '⏳' : '📍'}</span>
+          <span style={{ fontSize:22, fontWeight:800, color:T.text, lineHeight:1.2 }}>{location ? location.city : 'Välj plats'}</span>
+          <span style={{ fontSize:14 }}>{detecting ? '⏳' : '📍'}</span>
         </button>
         {location?.country && (
-          <div style={{ fontSize:11, color:T.textMuted }}>{location.country}</div>
+          <div style={{ fontSize:12, color:T.textMuted }}>{location.country}</div>
         )}
       </div>
 
@@ -329,11 +329,12 @@ export default function HomeScreen() {
               ))}
             </div>
           </div>
-          {slideIndex === 0 && (
-            <div style={{ fontSize:10, color:T.textMuted, textAlign:'right', marginBottom:3, marginTop:-2 }}>
+          {/* Swipe hint — always takes up space even when hidden, so table never jumps */}
+          <div style={{ height:16, marginBottom:3, display:'flex', alignItems:'center', justifyContent:'flex-end' }}>
+            <div style={{ fontSize:10, color:T.textMuted, opacity: slideIndex===0 ? 1 : 0, transition:'opacity .2s' }}>
               ← Swipe för imorgon
             </div>
-          )}
+          </div>
           {/* Rows — no gap between them, just tight stack */}
           <PrayerTable times={activeTimes} isTomorrow={isShowingTomorrow} />
         </>
