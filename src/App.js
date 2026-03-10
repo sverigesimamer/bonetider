@@ -31,37 +31,68 @@ function Shell() {
       background: T.bg,
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden', maxWidth: 500, margin: '0 auto',
+      position: 'relative',
     }}>
-      <div key={tab} style={{ flex:1, overflowY:'auto', overflowX:'hidden', WebkitOverflowScrolling:'touch' }}>
+      {/* Scrollable content — extra bottom padding so content clears the floating bar */}
+      <div key={tab} style={{
+        flex: 1, overflowY: 'auto', overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        paddingBottom: 90,
+      }}>
         {screens[tab]}
       </div>
 
+      {/* ── FLOATING TAB BAR ── */}
       <div style={{
-        display: 'flex', borderTop: `1px solid ${T.border}`,
-        background: T.bg,
-        paddingBottom: 'env(safe-area-inset-bottom, 12px)',
-        paddingTop: 8, flexShrink: 0, position: 'relative', zIndex: 100,
+        position: 'absolute',
+        bottom: `calc(env(safe-area-inset-bottom, 0px) + 14px)`,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 'calc(100% - 32px)',
+        maxWidth: 420,
+        display: 'flex',
+        background: T.isDark
+          ? 'rgba(22,22,22,0.92)'
+          : 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderRadius: 28,
+        border: `1px solid ${T.border}`,
+        boxShadow: T.isDark
+          ? '0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)'
+          : '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+        padding: '6px 4px',
+        zIndex: 200,
       }}>
         {TABS.map(t => {
           const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               flex: 1, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', gap: 3, padding: '6px 4px',
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: "'Inter', 'DM Sans', system-ui, sans-serif",
+              alignItems: 'center', gap: 3,
+              padding: '7px 4px',
+              background: active
+                ? T.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(36,100,93,0.08)'
+                : 'none',
+              borderRadius: 22,
+              border: 'none', cursor: 'pointer',
+              fontFamily: "'Inter', system-ui, sans-serif",
               WebkitTapHighlightColor: 'transparent',
+              transition: 'background .2s',
             }}>
               <SvgIcon
                 name={t.iconName}
                 size={22}
                 color={active ? T.accent : T.textMuted}
-                style={{ opacity: active ? 1 : 0.5, transition: 'all .2s' }}
+                style={{ opacity: active ? 1 : 0.45, transition: 'all .2s' }}
               />
               <span style={{
-                fontSize: 9, fontWeight: 600, letterSpacing: '.3px',
+                fontSize: 9, fontWeight: active ? 700 : 500,
+                letterSpacing: '.3px',
                 color: active ? T.accent : T.textMuted,
+                opacity: active ? 1 : 0.6,
                 whiteSpace: 'nowrap',
+                transition: 'all .2s',
               }}>
                 {t.label}
               </span>
