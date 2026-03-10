@@ -184,49 +184,49 @@ export default function HomeScreen() {
   const PrayerTable = ({ times, isTomorrow }) => {
     if (!times) return null;
     return (
-      <>
-        {PRAYER_NAMES.map((name) => {
+      <div style={{ borderRadius:13, overflow:'hidden', border:`1px solid ${T.border}` }}>
+        {PRAYER_NAMES.map((name, idx) => {
           const st       = isTomorrow ? 'future' : (prayerStatus[name] || 'future');
           const isPassed = st === 'passed';
           const isActive = st === 'active';
+          const isLast   = idx === PRAYER_NAMES.length - 1;
           return (
             <div key={name} style={{
               display:'flex', alignItems:'center', justifyContent:'space-between',
-              padding:'13px 16px', borderRadius:13, marginBottom:6,
-              border:'1px solid',
+              padding:'13px 16px',
+              borderBottom: isLast ? 'none' : `1px solid ${T.border}`,
               background: isActive ? T.accent : T.card,
-              borderColor: isActive ? T.accent : T.border,
               opacity: isPassed ? 0.3 : 1,
               transition:'opacity .4s, background .4s',
             }}>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <div style={{ fontSize:16, fontWeight:700, color: isActive ? (T.isDark?''#000'':'#fff') : T.text }}>
+                <div style={{ fontSize:16, fontWeight:700, color: isActive ? (T.isDark?'#000':'#fff') : T.text }}>
                   {PRAYER_SWEDISH[name]}
                 </div>
                 {isActive && (
                   <div style={{
                     fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:.8,
-                    color: T.isDark ? 'rgba(10,15,44,.5)' : 'rgba(255,255,255,.5)',
-                    background: T.isDark ? 'rgba(10,15,44,.12)' : 'rgba(255,255,255,.15)',
+                    color: T.isDark ? 'rgba(0,0,0,.5)' : 'rgba(255,255,255,.6)',
+                    background: T.isDark ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.2)',
                     padding:'2px 6px', borderRadius:4,
                   }}>Pågår nu</div>
                 )}
               </div>
               <div style={{
                 fontSize:17, fontWeight:700, fontFamily:"'DM Mono','Courier New',monospace",
-                color: isActive ? (T.isDark?''#000'':'#fff') : T.textSecondary,
+                color: isActive ? (T.isDark?'#000':'#fff') : T.textSecondary,
               }}>
                 {fmt24(times[name])}
               </div>
             </div>
           );
         })}
-      </>
+      </div>
     );
   };
 
   return (
-    <div style={{ padding:'12px 14px 0', background:T.bg, height:'100%', display:'flex', flexDirection:'column' }}
+    <div style={{ padding:'12px 14px 12px', background:T.bg, minHeight:'100%', boxSizing:'border-box' }}
       onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
 
       {showModal && (
@@ -235,24 +235,22 @@ export default function HomeScreen() {
       )}
 
       {/* Header */}
-      <div style={{ marginBottom:10 }}>
-        <div style={{ fontSize:11, fontWeight:600, color:T.textMuted, textTransform:'capitalize', marginBottom:0 }}>
+      <div style={{ marginBottom:8 }}>
+        <div style={{ fontSize:11, fontWeight:600, color:T.textMuted, textTransform:'capitalize' }}>
           {dateStr}
         </div>
         {hijriStr && (
-          <div style={{ fontSize:11, color:T.accent, fontWeight:600, marginBottom:4 }}>{hijriStr}</div>
+          <div style={{ fontSize:11, color:T.accent, fontWeight:600, marginBottom:2 }}>{hijriStr}</div>
         )}
         <button onClick={detectLocation} style={{
           display:'flex', alignItems:'center', gap:4,
           background:'none', border:'none', padding:0, cursor:'pointer',
         }}>
-          <span style={{ fontSize:20, fontWeight:800, color:T.text }}>{location ? location.city : 'Välj plats'}</span>
+          <span style={{ fontSize:18, fontWeight:800, color:T.text, lineHeight:1.2 }}>{location ? location.city : 'Välj plats'}</span>
           <span style={{ fontSize:13 }}>{detecting ? '⏳' : '📍'}</span>
         </button>
         {location?.country && (
-          <div style={{ fontSize:11, color:T.textMuted, marginTop:0 }}>
-            {location.country}
-          </div>
+          <div style={{ fontSize:11, color:T.textMuted }}>{location.country}</div>
         )}
       </div>
 
@@ -260,7 +258,7 @@ export default function HomeScreen() {
       {error && (
         <div style={{
           padding:'9px 12px', borderRadius:10, border:'1px solid rgba(255,80,80,0.3)',
-          background:'rgba(255,80,80,0.08)', marginBottom:10, fontSize:12, color:'#FF6B6B',
+          background:'rgba(255,80,80,0.08)', marginBottom:8, fontSize:12, color:'#FF6B6B',
         }}>
           ⚠️ {error}
           <button onClick={() => loadPrayers(location, settings.calculationMethod)}
@@ -280,7 +278,7 @@ export default function HomeScreen() {
           </div>
           <button onClick={detectLocation} style={{
             padding:'12px 26px', borderRadius:13, background:T.accent,
-            color:T.isDark?''#000'':'#fff', fontSize:14, fontWeight:700, border:'none', cursor:'pointer',
+            color:T.isDark?'#000':'#fff', fontSize:14, fontWeight:700, border:'none', cursor:'pointer',
           }}>Hitta min plats</button>
         </div>
       )}
@@ -288,36 +286,36 @@ export default function HomeScreen() {
       {/* Loading */}
       {isLoading && !prayerTimes && (
         <div>{[1,2,3,4,5,6,7].map(i => (
-          <div key={i} style={{ height:42, borderRadius:11, marginBottom:4, background:T.card, border:`1px solid ${T.border}`, overflow:'hidden' }}>
+          <div key={i} style={{ height:46, borderRadius:11, marginBottom:3, background:T.card, border:`1px solid ${T.border}`, overflow:'hidden' }}>
             <div style={{ height:'100%', width:'100%', background:`linear-gradient(90deg, transparent 25%, ${T.border} 50%, transparent 75%)`, backgroundSize:'200% 100%', animation:'shimmer 1.5s infinite' }}/>
           </div>
         ))}</div>
       )}
 
-      {/* Countdown */}
+      {/* Countdown — always fully visible */}
       {prayerTimes && nextPrayer && (
         <div style={{
-          background:T.bgSecondary, border:`1px solid ${T.border}`, borderRadius:15,
-          padding:'11px 14px 10px', textAlign:'center', marginBottom:10,
-          position:'relative', overflow:'hidden',
+          background:T.bgSecondary, border:`1px solid ${T.border}`, borderRadius:14,
+          padding:'10px 14px', textAlign:'center', marginBottom:10,
+          position:'relative', overflow:'hidden', flexShrink:0,
         }}>
           <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2, background:T.accent, opacity:.6 }}/>
-          <div style={{ fontSize:9, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:T.textMuted, marginBottom:3 }}>
+          <div style={{ fontSize:9, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:T.textMuted, marginBottom:2 }}>
             Tid kvar till {PRAYER_SWEDISH[nextPrayer]}
           </div>
-          <div style={{ fontSize:38, fontWeight:800, color:T.text, letterSpacing:'2px', lineHeight:1, fontFamily:"'DM Mono','Courier New',monospace" }}>
+          <div style={{ fontSize:36, fontWeight:800, color:T.text, letterSpacing:'2px', lineHeight:1.1, fontFamily:"'DM Mono','Courier New',monospace" }}>
             {fmtCountdown(secondsUntil)}
           </div>
-          <div style={{ fontSize:11, color:T.textMuted, marginTop:4 }}>
+          <div style={{ fontSize:11, color:T.textMuted, marginTop:3 }}>
             {PRAYER_SWEDISH[nextPrayer]} kl. {fmt24(prayerTimes[nextPrayer])}
           </div>
         </div>
       )}
 
-      {/* Slide header + dots + table — fills remaining space */}
+      {/* Table header + dots */}
       {prayerTimes && (
-        <div style={{ flex:1, display:'flex', flexDirection:'column', paddingBottom:12 }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
+        <>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
             <div style={{ fontSize:10, fontWeight:700, letterSpacing:'1.4px', textTransform:'uppercase', color:T.textMuted }}>
               {isShowingTomorrow ? `Imorgon · ${tomDateStr}` : 'Dagens böner'}
             </div>
@@ -332,14 +330,13 @@ export default function HomeScreen() {
             </div>
           </div>
           {slideIndex === 0 && (
-            <div style={{ fontSize:10, color:T.textMuted, textAlign:'right', marginBottom:4, marginTop:-3 }}>
+            <div style={{ fontSize:10, color:T.textMuted, textAlign:'right', marginBottom:3, marginTop:-2 }}>
               ← Swipe för imorgon
             </div>
           )}
-          <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
-            <PrayerTable times={activeTimes} isTomorrow={isShowingTomorrow} />
-          </div>
-        </div>
+          {/* Rows — no gap between them, just tight stack */}
+          <PrayerTable times={activeTimes} isTomorrow={isShowingTomorrow} />
+        </>
       )}
     </div>
   );
