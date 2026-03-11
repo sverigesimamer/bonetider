@@ -471,8 +471,7 @@ function AccordionPanel({ us, onSelectDhikr, favorites, bookmarks, T, isOpen }) 
   );
 }
 
-function CatDetail({ g, onSelectDhikr, favorites, bookmarks, T }) {
-  const [openIdx, setOpenIdx] = useState(null);
+function CatDetail({ g, onSelectDhikr, favorites, bookmarks, T, openIdx, setOpenIdx }) {
   const toggle = (i) => setOpenIdx(prev => prev === i ? null : i);
 
   // Lyssna på openUndersida-event från breadcrumb-klick
@@ -722,6 +721,7 @@ export default function DhikrScreen({ onBack }) {
   const [view,      setView]      = useState('home');    // home|cat|dhikr
   const [selGrupp,  setSelGrupp]  = useState(null);
   const [selDhikr,  setSelDhikr]  = useState(null);
+  const [catOpenIdx, setCatOpenIdx] = useState(null);   // persist accordion open state across dhikr nav
   const [dhikrOriginTab, setDhikrOriginTab] = useState(null); // which tab opened dhikr
   const [searchQ,   setSearchQ]   = useState('');
   const [favorites, setFavorites] = useState(() => loadStorage(STORAGE_KEY_FAV));
@@ -731,7 +731,7 @@ export default function DhikrScreen({ onBack }) {
 
   const scrollTop = () => { if (bodyRef.current) bodyRef.current.scrollTop = 0; };
 
-  const goToCat   = useCallback(g  => { setSelGrupp(g);  setView('cat');   scrollTop(); }, []);
+  const goToCat   = useCallback(g  => { setSelGrupp(g);  setView('cat');  setCatOpenIdx(null); scrollTop(); }, []);
   const goToDhikr = useCallback(d  => {
     setDhikrOriginTab(mainTab);
     setSelDhikr(d);
@@ -900,7 +900,7 @@ export default function DhikrScreen({ onBack }) {
 
         {/* CATEGORY DETAIL */}
         {view==='cat' && selGrupp && (
-          <CatDetail g={selGrupp} onSelectDhikr={goToDhikr} favorites={favorites} bookmarks={bookmarks} T={T}/>
+          <CatDetail g={selGrupp} onSelectDhikr={goToDhikr} favorites={favorites} bookmarks={bookmarks} T={T} openIdx={catOpenIdx} setOpenIdx={setCatOpenIdx}/>
         )}
 
         {/* DHIKR DETAIL */}

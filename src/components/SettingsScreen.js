@@ -80,7 +80,7 @@ export default function SettingsScreen({ onBack }) {
   // Instant search as user types — debounced 350ms
   useEffect(() => {
     if (!query.trim()) { setResults([]); return; }
-    const timer = setTimeout(() => doSearch(query), 350);
+    const timer = setTimeout(() => doSearch(query), 250);
     return () => clearTimeout(timer);
   }, [query]); // eslint-disable-line
 
@@ -259,17 +259,24 @@ export default function SettingsScreen({ onBack }) {
         <ModalSheet T={T} title="Byt stad"
           onClose={() => { setCityModal(false); setQuery(''); setResults([]); }}
           topContent={
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <input value={query} onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => e.key==='Enter' && doSearch()}
-                placeholder="Sök stad…" autoFocus
-                style={{ flex:1, padding:'12px 14px', borderRadius:10,
-                  border:`1px solid ${T.border}`, background:T.card, color:T.text,
-                  fontSize:15, fontFamily:"'Inter',system-ui,sans-serif",
-                  outline:'none' }}/>
-              {searching && (
-                <div style={{width:18,height:18,flexShrink:0,borderRadius:'50%',border:`2px solid ${T.border}`,borderTopColor:T.accent,animation:'spin .7s linear infinite'}}/>
+            <div>
+              {location?.city && (
+                <div style={{ fontSize:12, color:T.textMuted, marginBottom:8, fontFamily:"'Inter',system-ui,sans-serif" }}>
+                  Nuvarande: <span style={{ color:T.accent, fontWeight:600 }}>{location.city}{location.country ? `, ${location.country}` : ''}</span>
+                </div>
               )}
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <input value={query} onChange={e => setQuery(e.target.value)}
+                  onKeyDown={e => e.key==='Enter' && doSearch()}
+                  placeholder="Sök stad…" autoFocus
+                  style={{ flex:1, padding:'12px 14px', borderRadius:10,
+                    border:`1px solid ${T.border}`, background:T.card, color:T.text,
+                    fontSize:15, fontFamily:"'Inter',system-ui,sans-serif",
+                    outline:'none' }}/>
+                {searching && (
+                  <div style={{width:18,height:18,flexShrink:0,borderRadius:'50%',border:`2px solid ${T.border}`,borderTopColor:T.accent,animation:'spin .7s linear infinite'}}/>
+                )}
+              </div>
             </div>
           }
         >
@@ -293,7 +300,13 @@ export default function SettingsScreen({ onBack }) {
       )}
 
       {methodModal && (
-        <ModalSheet T={T} title="Beräkningsmetod" onClose={() => setMethodModal(false)}>
+        <ModalSheet T={T} title="Beräkningsmetod" onClose={() => setMethodModal(false)}
+          topContent={
+            <div style={{ fontSize:12, color:T.textMuted, fontFamily:"'Inter',system-ui,sans-serif", marginBottom:4 }}>
+              Nuvarande: <span style={{ color:T.accent, fontWeight:600 }}>{CALC_METHODS[settings.calculationMethod]}</span>
+            </div>
+          }
+        >
           {Object.entries(CALC_METHODS).map(([key, name]) => {
             const active = settings.calculationMethod === parseInt(key);
             return (
@@ -316,7 +329,13 @@ export default function SettingsScreen({ onBack }) {
       )}
 
       {schoolModal && (
-        <ModalSheet T={T} title="Rättsskola" onClose={() => setSchoolModal(false)}>
+        <ModalSheet T={T} title="Rättsskola" onClose={() => setSchoolModal(false)}
+          topContent={
+            <div style={{ fontSize:12, color:T.textMuted, fontFamily:"'Inter',system-ui,sans-serif", marginBottom:4 }}>
+              Nuvarande: <span style={{ color:T.accent, fontWeight:600 }}>{SCHOOLS[settings.school]}</span>
+            </div>
+          }
+        >
           <div style={{ fontSize:13, color:T.textMuted, marginBottom:14, lineHeight:1.6 }}>
             Påverkar beräkningen av Asr-bönen. Välj enligt din madhab.
           </div>

@@ -94,7 +94,10 @@ function LocationPrompt({ onAllow, onDeny, T }) {
 function Shell() {
   const { theme: T } = useTheme();
   const { location, dispatch } = useApp();
-  const [tab, setTab]               = useState('home');
+  const [tab, setTab] = useState(() => {
+    // Restore tab from sessionStorage — prevents iOS PWA from jumping to home on wake
+    try { return sessionStorage.getItem('activeTab') || 'home'; } catch { return 'home'; }
+  });
   const [showMonthly, setShowMonthly] = useState(false);
   const [tabBarVisible, setTabBarVisible] = useState(true);
   const [ebooksReset, setEbooksReset] = useState(0);
@@ -148,13 +151,13 @@ function Shell() {
   const handleTabPress = (id) => {
     if (id === 'ebooks') {
       if (tab === 'ebooks') {
-        // Already on ebooks — reset to library
         setEbooksReset(n => n + 1);
       } else {
         setTab('ebooks');
-        setEbooksReset(n => n + 1); // always reset when switching to ebooks
+        setEbooksReset(n => n + 1);
       }
       setShowMonthly(false);
+      try { sessionStorage.setItem('activeTab', 'ebooks'); } catch {}
       return;
     }
     if (id === 'more') {
@@ -162,6 +165,7 @@ function Shell() {
     }
     setTab(id);
     setShowMonthly(false);
+    try { sessionStorage.setItem('activeTab', id); } catch {}
   };
 
   const renderScreen = () => {
@@ -283,7 +287,11 @@ function Shell() {
                   alt={t.label}
                   style={{
                     width: 24, height: 24, objectFit: 'contain',
-                    filter: active ? svgColorFilter(T.isDark) : T.isDark ? 'invert(60%) opacity(0.45)' : 'invert(0%) opacity(0.35)',
+                  filter: active
+                    ? svgColorFilter(T.isDark)
+                    : T.isDark
+                      ? 'invert(48%) sepia(60%) saturate(400%) hue-rotate(120deg) brightness(90%)'  // green at full opacity in dark
+                      : 'invert(0%) opacity(0.6)',   // muted in light
                     transition: 'filter .2s',
                   }}
                 />
@@ -292,8 +300,8 @@ function Shell() {
                   <SvgIcon
                     name={t.iconName}
                     size={22}
-                    color={active ? T.accent : T.textMuted}
-                    style={{ opacity: active ? 1 : 0.45, transition: 'all .2s' }}
+                    color={active ? T.accent : T.isDark ? T.accent : T.textMuted}
+                    style={{ opacity: active ? 1 : T.isDark ? 0.75 : 0.65, transition: 'all .2s' }}
                   />
                   {t.id === 'home' && isLive && (
                     <div style={{
@@ -309,8 +317,8 @@ function Shell() {
               <span style={{
                 fontSize: 9, fontWeight: active ? 700 : 500,
                 letterSpacing: '.3px',
-                color: active ? T.accent : T.textMuted,
-                opacity: active ? 1 : 0.6,
+                color: active ? T.accent : T.isDark ? T.accent : T.textMuted,
+                opacity: active ? 1 : T.isDark ? 0.7 : 0.65,
                 whiteSpace: 'nowrap',
                 transition: 'all .2s',
               }}>{t.label}</span>
