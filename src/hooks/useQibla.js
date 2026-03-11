@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchQiblaDirection } from '../services/prayerApi';
 
 const ALIGN_TOL = 5;
-const PERM_KEY  = 'compassPermission';
 
 function angleDelta(a, b) {
   const d = Math.abs(a - b) % 360;
@@ -27,6 +26,9 @@ function circularSmooth(prev, next, alpha) {
   return (prev + alpha * diff + 360) % 360;
 }
 
+const isIOS = typeof DeviceOrientationEvent !== 'undefined' &&
+              typeof DeviceOrientationEvent.requestPermission === 'function';
+
 export function useQibla(location) {
   const [qiblaDir,     setQiblaDir]     = useState(null);
   const [heading,      setHeading]      = useState(0);
@@ -35,20 +37,17 @@ export function useQibla(location) {
   const [compassAvail, setCompassAvail] = useState(false);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState(null);
-  const [permState,    setPermState]    = useState(
-    () => localStorage.getItem(PERM_KEY) || null
-  );
 
-  const smoothedRef  = useRef(0);
-  const wasAligned   = useRef(false);
-  const qiblaDirRef  = useRef(null);
-  // Single stable handler — created once, never recreated
-  const handlerRef   = useRef(null);
-  const attachedRef  = useRef(false);
+  // iOS always needs a fresh permission tap each session — no caching
+  const [needsPermission, setNeedsPermission] = useState(isIOS);
 
-  // ── One stable orientation handler, stored in a ref ──────────────────────
-  // Created once on first render, reads all values via refs so it never
-  // needs to be recreated or re-registered.
+  const smoothedRef = useRef(0);
+  const wasAligned  = useRef(false);
+  const qiblaDirRef = useRef(null);
+  const handlerRef  = useRef(null);
+  const attachedRef = useRef(false);
+
+  // Single stable handler created once
   if (!handlerRef.current) {
     handlerRef.current = (e) => {
       let h = 0;
@@ -73,9 +72,8 @@ export function useQibla(location) {
     };
   }
 
-  // ── Attach/detach — always use the same handler ref ───────────────────────
   const attach = useCallback(() => {
-    if (attachedRef.current) return; // guard against double-attach
+    if (attachedRef.current) return;
     attachedRef.current = true;
     window.addEventListener('deviceorientationabsolute', handlerRef.current, true);
     window.addEventListener('deviceorientation',         handlerRef.current, true);
@@ -90,12 +88,11 @@ export function useQibla(location) {
     setCompassAvail(false);
   }, []);
 
-  // ── Fetch Qibla direction once per location ───────────────────────────────
+  // Fetch Qibla direction — skip if coords unchanged
   const latRef = useRef(null);
   const lngRef = useRef(null);
   useEffect(() => {
     if (!location) return;
-    // Skip if coords haven't meaningfully changed (avoids re-fetch on object identity change)
     const lat = parseFloat(location.latitude.toFixed(4));
     const lng = parseFloat(location.longitude.toFixed(4));
     if (lat === latRef.current && lng === lngRef.current) return;
@@ -120,39 +117,28 @@ export function useQibla(location) {
     return () => { cancelled = true; };
   }, [location]);
 
-  // ── Attach listeners on mount, detach on unmount ──────────────────────────
+  // On mount: Android/desktop attach immediately, iOS waits for button press
   useEffect(() => {
     if (!('DeviceOrientationEvent' in window)) return;
-
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      // iOS: only attach if already granted
-      if (localStorage.getItem(PERM_KEY) === 'granted') attach();
-    } else {
-      // Android / desktop
-      attach();
-    }
-
+    if (!isIOS) attach();
     return () => detach();
   }, [attach, detach]);
 
-  // ── iOS permission request ─────────────────────────────────────────────────
+  // iOS permission — called from button tap (user gesture required)
   const requestPermission = useCallback(async () => {
     try {
       const result = await DeviceOrientationEvent.requestPermission();
-      localStorage.setItem(PERM_KEY, result);
-      setPermState(result);
-      if (result === 'granted') attach(); // reuse same handler, no duplicate
+      if (result === 'granted') {
+        setNeedsPermission(false);
+        attach();
+      }
     } catch {
-      localStorage.setItem(PERM_KEY, 'denied');
-      setPermState('denied');
+      // Permission denied or error — keep showing button
     }
   }, [attach]);
 
-  const needsPermission = typeof DeviceOrientationEvent?.requestPermission === 'function'
-    && permState !== 'granted';
-
   return {
     qiblaDir, heading, alignDelta, isAligned,
-    compassAvail, loading, error, needsPermission, requestPermission, permState,
+    compassAvail, loading, error, needsPermission, requestPermission,
   };
 }
