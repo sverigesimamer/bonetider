@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "./static/css/main.00346464.css",
-    "main.js": "./static/js/main.a20974ef.js",
+    "main.js": "./static/js/main.bac4a137.js",
     "index.html": "./index.html",
     "static/media/islamnu-logga-light.svg": "./static/media/islamnu-logga-light.59d27279b5b5402eef5efe13f52ca73d.svg",
     "main.00346464.css.map": "./static/css/main.00346464.css.map",
-    "main.a20974ef.js.map": "./static/js/main.a20974ef.js.map"
+    "main.bac4a137.js.map": "./static/js/main.bac4a137.js.map"
   },
   "entrypoints": [
     "static/css/main.00346464.css",
-    "static/js/main.a20974ef.js"
+    "static/js/main.bac4a137.js"
   ]
 }
