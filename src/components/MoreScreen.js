@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import SettingsScreen from './SettingsScreen';
 import AboutScreen from './AboutScreen';
-import DhikrScreen from './DhikrScreen';
+import EbooksScreen from './EbooksScreen';
 import AboutIcon from '../icons/about-svgrepo-com.svg';
-import TasbihIcon from '../icons/tasbih.svg';
 
 const MENU_ITEMS = [
   {
@@ -21,11 +20,15 @@ const MENU_ITEMS = [
     accentColor: null, // use T.accent
   },
   {
-    id: 'dhikr',
-    label: 'Dhikr & Du\'a',
-    sublabel: '215 dhikr, 36 kategorier',
-    imgSrc: TasbihIcon,
-    accentColor: '#7B5EA7',
+    id: 'ebooks',
+    label: 'E-böcker',
+    sublabel: 'Islamisk litteratur',
+    svgIcon: (accent) => (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+    ),
+    accentColor: '#3A86C8',
   },
   {
     id: 'about',
@@ -71,12 +74,12 @@ function GridCard({ item, onPress, T }) {
             src={item.imgSrc}
             alt={item.label}
             style={{
-              width: 30, height: 30, objectFit: 'contain',
+              width: item.id === 'dhikr' ? 42 : 30,
+              height: item.id === 'dhikr' ? 42 : 30,
+              objectFit: 'contain',
               filter: T.isDark
                 ? 'invert(1) opacity(0.85)'
-                : item.id === 'dhikr'
-                  ? 'invert(30%) sepia(40%) saturate(600%) hue-rotate(250deg) brightness(80%)'
-                  : 'invert(28%) sepia(50%) saturate(400%) hue-rotate(180deg) brightness(85%)',
+                : 'invert(28%) sepia(60%) saturate(400%) hue-rotate(140deg) brightness(80%)',
             }}
           />
         )}
@@ -98,7 +101,7 @@ export default function MoreScreen() {
   const [view, setView] = useState('menu');
 
   if (view === 'settings') return <SettingsScreen onBack={() => setView('menu')} />;
-  if (view === 'dhikr')    return <DhikrScreen    onBack={() => setView('menu')} />;
+  if (view === 'ebooks')   return <EbooksScreen onReaderOpen={() => {}} onReaderClose={() => {}} resetToLibrary={false} onBack={() => setView('menu')} />;
   if (view === 'about')    return <AboutScreen    onBack={() => setView('menu')} />;
 
   return (

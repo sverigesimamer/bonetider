@@ -10,8 +10,10 @@ import SvgIcon        from './components/SvgIcon';
 import KabaIcon       from './icons/kaba.svg';
 import PrayerTimesIcon from './icons/prayer-times.svg';
 import { reverseGeocode } from './services/prayerApi';
+import DhikrScreen       from './components/DhikrScreen';
 import MoreScreen        from './components/MoreScreen';
 import MoreAppIcon       from './icons/more-app-svgrepo-com.svg';
+import TasbihIcon        from './icons/tasbih.svg';
 import { useYoutubeLive } from './hooks/useYoutubeLive';
 
 function svgColorFilter(isDark) {
@@ -24,7 +26,7 @@ const TABS = [
   { id: 'home',     type: 'icon',   iconName: 'home',   label: 'Hem'        },
   { id: 'prayer',   type: 'custom', icon: 'prayer',     label: 'Bönetider'  },
   { id: 'qibla',    type: 'custom', icon: 'kaba',       label: 'Qibla'      },
-  { id: 'ebooks',   type: 'icon',   iconName: 'book',   label: 'E-böcker'   },
+  { id: 'dhikr',    type: 'custom', icon: 'dhikr',      label: 'Dhikr'      },
   { id: 'more',     type: 'custom', icon: 'more',       label: 'Visa mer'   },
 ];
 
@@ -95,6 +97,7 @@ function Shell() {
   const [showMonthly, setShowMonthly] = useState(false);
   const [tabBarVisible, setTabBarVisible] = useState(true);
   const [ebooksReset, setEbooksReset] = useState(0); // bump to reset ebooks to library
+  const [moreResetKey, setMoreResetKey]   = useState(0); // bump to reset MoreScreen to menu
   const [showGpsPrompt, setShowGpsPrompt] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const { isLive, stream } = useYoutubeLive();
@@ -145,6 +148,9 @@ function Shell() {
       setShowMonthly(false);
       return;
     }
+    if (id === 'more') {
+      setMoreResetKey(n => n + 1);
+    }
     setTab(id);
     setShowMonthly(false);
   };
@@ -155,15 +161,8 @@ function Shell() {
       case 'home':     return <NewHomeScreen stream={stream} />;
       case 'prayer':   return <PrayerScreen onMonthlyPress={() => setShowMonthly(true)} />;
       case 'qibla':    return <QiblaScreen />;
-      case 'ebooks':
-        return (
-          <EbooksScreen
-            onReaderOpen={() => setTabBarVisible(false)}
-            onReaderClose={() => setTabBarVisible(true)}
-            resetToLibrary={ebooksReset}
-          />
-        );
-      case 'more':     return <MoreScreen />;
+      case 'dhikr':   return <DhikrScreen />;
+      case 'more':     return <MoreScreen key={moreResetKey} />;
       default:         return <NewHomeScreen />;
     }
   };
@@ -249,7 +248,7 @@ function Shell() {
             >
               {t.type === 'custom' ? (
                 <img
-                  src={t.icon === 'kaba' ? KabaIcon : t.icon === 'more' ? MoreAppIcon : PrayerTimesIcon}
+                  src={t.icon === 'kaba' ? KabaIcon : t.icon === 'dhikr' ? TasbihIcon : t.icon === 'more' ? MoreAppIcon : PrayerTimesIcon}
                   alt={t.label}
                   style={{
                     width: 24, height: 24, objectFit: 'contain',

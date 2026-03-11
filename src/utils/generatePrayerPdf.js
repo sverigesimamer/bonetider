@@ -127,22 +127,7 @@ export function generatePrayerPdf({ days, location, month, year }) {
   tbody tr { border-bottom: 1px solid ${GRAY2}; }
   tbody tr:nth-child(even) td { background: ${GRAY1}; }
   tbody tr.weekend td { background: ${WEEKEND}; }
-  tbody tr.today td {
-    background: ${ACCENT_LT} !important;
-    font-weight: 700;
-    color: ${ACCENT};
-  }
-  tbody tr.today td.date-col .date-num {
-    background: ${ACCENT};
-    color: #fff;
-    border-radius: 50%;
-    width: 22px;
-    height: 22px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-  }
+
 
   td {
     padding: 7px 8px;
@@ -163,10 +148,7 @@ export function generatePrayerPdf({ days, location, month, year }) {
     width: 28px;
     padding-right: 2px;
   }
-  tbody tr.today td.day-col { color: ${ACCENT}; }
 
-  /* today bar on left */
-  tbody tr.today td:first-child { border-left: 3px solid ${ACCENT}; }
 
   /* ── FOOTER ── */
   .footer {
@@ -233,8 +215,7 @@ ${days.map(d => {
   const dateStr   = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
   const dayAbbr   = getDayAbbr(year, month, day);
   const weekend   = isWeekend(year, month, day);
-  const isToday   = day === todayDay;
-  const rowClass  = [isToday ? 'today' : '', weekend && !isToday ? 'weekend' : ''].filter(Boolean).join(' ');
+  const rowClass  = weekend ? 'weekend' : '';
   return `    <tr class="${rowClass}">
       <td class="day-col">${dayAbbr}</td>
       <td class="date-col"><span class="date-num">${dateStr}</span></td>

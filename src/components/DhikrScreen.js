@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import rawData from '../data/dhikr.json';
+import SunriseIcon   from '../icons/sunrise-svgrepo-com.svg';
+import MoonIcon      from '../icons/moon-svgrepo-com.svg';
+import KabaIconSvg   from '../icons/kaba.svg';
+import TasbihIconSvg from '../icons/tasbih.svg';
+import CompassIcon   from '../icons/compass-svgrepo-com.svg';
+import HomeIcon      from '../icons/home-svgrepo-com.svg';
 
 // ─────────────────────────────────────────────────────────────
 // DATA: Group raw categories into 9 visual super-groups
@@ -196,6 +202,18 @@ function DhikrCard({ d, T, favorites, bookmarks, onToggleFav, onToggleBm }) {
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
           </svg>
         </button>
+        <button onClick={() => {
+          const text = [d.titel, d.arabisk_text, d.translitteration, d.svensk_text, d.kallhanvisning].filter(Boolean).join('\n\n');
+          if (navigator.share) {
+            navigator.share({ title: d.titel, text });
+          } else {
+            navigator.clipboard?.writeText(text).then(() => alert('Kopierat!'));
+          }
+        }} style={{background:'none',border:'none',cursor:'pointer',padding:6,WebkitTapHighlightColor:'transparent',flexShrink:0}}>
+          <svg width="18" height="20" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 13V17.5C20 20.5577 16 20.5 12 20.5C8 20.5 4 20.5577 4 17.5V13M12 3L12 15M12 3L16 7M12 3L8 7"/>
+          </svg>
+        </button>
       </div>
 
       {/* Tab pills */}
@@ -252,37 +270,100 @@ function DhikrCard({ d, T, favorites, bookmarks, onToggleFav, onToggleBm }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// GRID CARD (category tile)
+// CATEGORY ICONS — inline SVG per kategori, tar en färg + storlek
+// Samma ikon används i både grid och listvy
 // ─────────────────────────────────────────────────────────────
-function GridCard({ g, count, onPress }) {
+
+// CSS filter: teal-färga befintliga SVG-filer
+function iconFilter(isDark) {
+  return isDark
+    ? 'invert(65%) sepia(40%) saturate(500%) hue-rotate(120deg) brightness(95%)'
+    : 'invert(28%) sepia(55%) saturate(500%) hue-rotate(130deg) brightness(82%)';
+}
+
+// SVG-fil-ikoner (befintliga filer i /icons/)
+const FILE_ICONS = {
+  morgon:      SunriseIcon,
+  somn:        MoonIcon,
+  bonen:       KabaIconSvg,
+  pilgrim:     TasbihIconSvg,
+  resa:        CompassIcon,
+  dagligt:     HomeIcon,
+};
+
+// Inline SVG för kategorier utan befintlig fil
+const INLINE_ICONS = {
+  // Sköld med bock — Svårigheter & Skydd
+  svarigheter: (c, s) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <polyline points="9 12 11 14 15 10"/>
+    </svg>
+  ),
+  // Hjärta med kors — Sjukdom & Begravning
+  begravning: (c, s) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  ),
+  // Öppna händer (du'a) — Familj & Övrigt
+  ovrigt: (c, s) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2"/>
+      <path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/>
+      <path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/>
+      <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8 2 2 0 1 1 4 0"/>
+    </svg>
+  ),
+};
+
+// Renderar rätt ikon beroende på om det är fil eller inline
+function CategoryIcon({ id, namn, size, filter }) {
+  if (FILE_ICONS[id]) {
+    return (
+      <img src={FILE_ICONS[id]} alt={namn}
+        style={{ width: size, height: size, objectFit: 'contain', filter }}
+      />
+    );
+  }
+  if (INLINE_ICONS[id]) {
+    // Inline-SVG: extrahera färg från filter-strängen — använd accent direkt via currentColor trick
+    // Vi skickar in färgen via style på wrappern
+    return INLINE_ICONS[id]('currentColor', size);
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// GRID CARD
+// ─────────────────────────────────────────────────────────────
+function GridCard({ g, count, onPress, T }) {
+  const filt  = iconFilter(T.isDark);
+  const iconBg = T.isDark ? 'rgba(36,100,93,.20)' : 'rgba(36,100,93,.10)';
+  const inlineColor = T.isDark ? T.accent : '#24645d';
   return (
     <button onClick={onPress} style={{
-      position:'relative', borderRadius:18, overflow:'hidden', border:'none',
+      borderRadius:18, border:`1px solid ${T.border}`,
       cursor:'pointer', WebkitTapHighlightColor:'transparent',
-      aspectRatio:'1 / 1', display:'flex', flexDirection:'column',
-      alignItems:'flex-start', justifyContent:'flex-end', padding:0,
-      background:`linear-gradient(135deg, ${g.gradient[0]}, ${g.gradient[1]})`,
+      display:'flex', flexDirection:'column',
+      alignItems:'center', justifyContent:'center',
+      padding:'22px 10px 16px',
+      background: T.card, gap:12,
     }}>
-      {/* Decorative pattern */}
       <div style={{
-        position:'absolute', inset:0,
-        backgroundImage:`radial-gradient(circle at 70% 30%, rgba(255,255,255,.08) 0%, transparent 60%)`,
-      }}/>
-      {/* Emoji */}
-      <div style={{
-        position:'absolute', top:12, right:12,
-        fontSize:28, lineHeight:1, opacity:.9,
-      }}>{g.emoji}</div>
-      {/* Bottom label */}
-      <div style={{
-        position:'relative', width:'100%',
-        background:'linear-gradient(to top, rgba(0,0,0,.72) 0%, transparent 100%)',
-        padding:'24px 12px 12px',
+        width:72, height:72, borderRadius:22,
+        background: iconBg,
+        display:'flex', alignItems:'center', justifyContent:'center',
+        flexShrink:0,
+        color: inlineColor, // för inline SVG currentColor
       }}>
-        <div style={{fontSize:13, fontWeight:800, color:'#fff', lineHeight:1.2, fontFamily:'system-ui', textTransform:'uppercase', letterSpacing:.5}}>
+        <CategoryIcon id={g.id} namn={g.namn} size={40} filter={filt} />
+      </div>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontSize:12, fontWeight:700, color:T.text, lineHeight:1.3, fontFamily:'system-ui'}}>
           {g.namn}
         </div>
-        <div style={{fontSize:11, color:'rgba(255,255,255,.65)', marginTop:2, fontFamily:'system-ui'}}>
+        <div style={{fontSize:10, color:T.textMuted, marginTop:3, fontFamily:'system-ui'}}>
           {count} dhikr
         </div>
       </div>
@@ -291,36 +372,27 @@ function GridCard({ g, count, onPress }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// LIST ROW (for list view)
+// LIST ROW
 // ─────────────────────────────────────────────────────────────
-const CAT_SVG = {
-  'morgon': <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
-  'bonen':  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/><path d="M9 12h6"/><path d="M9 8h6"/><path d="M9 16h4"/></svg>,
-  'dagligt':<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-  'svarigheter':<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-  'somn':   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
-  'resa':   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 4 19.5 2.5S18 1 16.5 2.5L13 6 4.8 4.2l-1.4 1.4L9 10l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.6 1.4-1.4z"/></svg>,
-  'pilgrim':<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
-  'begravning':<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
-  'ovrigt': <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-};
-
 function ListRow({ g, count, onPress, T }) {
+  const filt  = iconFilter(T.isDark);
+  const iconBg = T.isDark ? 'rgba(36,100,93,.20)' : 'rgba(36,100,93,.10)';
+  const inlineColor = T.isDark ? T.accent : '#24645d';
   return (
     <button onClick={onPress} style={{
       display:'flex', alignItems:'center', gap:14,
       width:'100%', background:T.card,
       border:`1px solid ${T.border}`, borderRadius:14,
-      padding:'14px 16px', cursor:'pointer', textAlign:'left',
+      padding:'13px 16px', cursor:'pointer', textAlign:'left',
       WebkitTapHighlightColor:'transparent', marginBottom:8,
     }}>
       <div style={{
-        width:44, height:44, borderRadius:12, flexShrink:0,
-        background:`linear-gradient(135deg, ${g.gradient[0]}, ${g.gradient[1]})`,
+        width:46, height:46, borderRadius:14, flexShrink:0,
+        background: iconBg,
         display:'flex', alignItems:'center', justifyContent:'center',
-        color:'rgba(255,255,255,.9)',
+        color: inlineColor,
       }}>
-        {CAT_SVG[g.id]}
+        <CategoryIcon id={g.id} namn={g.namn} size={26} filter={filt} />
       </div>
       <div style={{flex:1, minWidth:0}}>
         <div style={{fontSize:15, fontWeight:700, color:T.text, fontFamily:'system-ui'}}>{g.namn}</div>
@@ -332,52 +404,167 @@ function ListRow({ g, count, onPress, T }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// CATEGORY DETAIL — list all undersidor + dhikr items
+// CATEGORY DETAIL — smooth accordion with CSS max-height transition
 // ─────────────────────────────────────────────────────────────
+function AccordionPanel({ us, onSelectDhikr, favorites, bookmarks, T, isOpen }) {
+  const innerRef = useRef(null);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    if (!innerRef.current) return;
+    if (isOpen) {
+      // Measure and set real height
+      setHeight(innerRef.current.scrollHeight);
+    } else {
+      // First set to current pixel height so transition works from a value
+      setHeight(innerRef.current.scrollHeight);
+      // Then in next frame collapse to 0
+      requestAnimationFrame(() => setHeight(0));
+    }
+  }, [isOpen]);
+
+  return (
+    <div
+      style={{
+        overflow: 'hidden',
+        maxHeight: isOpen ? (height || 2000) : height,
+        transition: 'max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1)',
+        willChange: 'max-height',
+      }}
+    >
+      <div ref={innerRef}>
+        {/* Top border when open */}
+        <div style={{height:1, background: T.border, margin:'0 16px'}}/>
+        {us.dhikr_poster.map((d, i) => {
+          const key = d.url || d.titel;
+          const isFav = favorites.includes(key);
+          const isBm  = bookmarks.includes(key);
+          return (
+            <button key={i} onClick={() => onSelectDhikr(d)} style={{
+              display:'flex', alignItems:'center', gap:12,
+              width:'100%',
+              background: T.isDark ? 'rgba(255,255,255,.025)' : 'rgba(36,100,93,.025)',
+              border:'none', borderBottom:`1px solid ${T.border}`,
+              padding:'12px 16px 12px 31px',
+              cursor:'pointer', textAlign:'left',
+              WebkitTapHighlightColor:'transparent',
+            }}>
+              {/* Row index badge */}
+              <div style={{
+                width:24, height:24, borderRadius:7, flexShrink:0,
+                background: T.isDark ? 'rgba(36,100,93,.3)' : 'rgba(36,100,93,.12)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:11, fontWeight:700, color:T.accent, fontFamily:'system-ui',
+              }}>{i+1}</div>
+
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontSize:13, fontWeight:600, color:T.text, lineHeight:1.4, fontFamily:'system-ui'}}>{d.titel}</div>
+                {d.arabisk_text && (
+                  <div style={{
+                    fontSize:13, color:T.textMuted, marginTop:4,
+                    direction:'rtl', textAlign:'right',
+                    fontFamily:'"Traditional Arabic","Scheherazade New","Amiri",serif',
+                    lineHeight:1.6, overflow:'hidden',
+                    display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical',
+                  }}>
+                    {d.arabisk_text}
+                  </div>
+                )}
+              </div>
+
+              <div style={{display:'flex', alignItems:'center', gap:5, flexShrink:0}}>
+                {isFav && <svg width="11" height="11" viewBox="0 0 24 24" fill="#f5a623"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
+                {isBm  && <svg width="10" height="12" viewBox="0 0 24 24" fill={T.accent}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>}
+                {d.mp3_url && <div style={{width:5, height:5, borderRadius:'50%', background:T.accent, flexShrink:0}}/>}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2.2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function CatDetail({ g, onSelectDhikr, favorites, bookmarks, T }) {
+  const [openIdx, setOpenIdx] = useState(null);
+  const toggle = (i) => setOpenIdx(prev => prev === i ? null : i);
+
   return (
     <div style={{paddingBottom:32}}>
-      {g.undersidor.map((us, ui) => (
-        <div key={ui}>
-          <div style={{
-            padding:'14px 16px 6px',
-            fontSize:11, fontWeight:700, color:T.accent,
-            textTransform:'uppercase', letterSpacing:1.1, fontFamily:'system-ui',
-            borderBottom:`1px solid ${T.border}`, background:T.bg,
-          }}>{us.titel}</div>
-          {us.dhikr_poster.map((d, i) => {
-            const key = d.url || d.titel;
-            const isFav = favorites.includes(key);
-            const isBm  = bookmarks.includes(key);
-            return (
-              <button key={i} onClick={() => onSelectDhikr(d)} style={{
+      {g.undersidor.map((us, ui) => {
+        const isOpen = openIdx === ui;
+        const hasFavInSection = us.dhikr_poster.some(d => favorites.includes(d.url || d.titel));
+        const hasBmInSection  = us.dhikr_poster.some(d => bookmarks.includes(d.url  || d.titel));
+        const hasAudio        = us.dhikr_poster.some(d => d.mp3_url);
+
+        return (
+          <div key={ui} style={{borderBottom:`1px solid ${T.border}`}}>
+            {/* ── Accordion header ── */}
+            <button
+              onClick={() => toggle(ui)}
+              style={{
                 display:'flex', alignItems:'center', gap:12,
-                width:'100%', background:'none', border:'none',
-                borderBottom:`1px solid ${T.border}`,
-                padding:'12px 16px', cursor:'pointer', textAlign:'left',
+                width:'100%', border:'none', cursor:'pointer', textAlign:'left',
                 WebkitTapHighlightColor:'transparent',
-              }}>
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:14, fontWeight:600, color:T.text, lineHeight:1.4, fontFamily:'system-ui'}}>{d.titel}</div>
-                  {d.arabisk_text && (
-                    <div style={{fontSize:12, color:T.textMuted, marginTop:3, direction:'rtl', textAlign:'right',
-                      fontFamily:'"Traditional Arabic","Scheherazade New",serif', lineHeight:1.5,
-                      overflow:'hidden', display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical'}}>
-                      {d.arabisk_text}
-                    </div>
-                  )}
+                padding:'15px 16px',
+                background: isOpen
+                  ? (T.isDark ? 'rgba(36,100,93,.18)' : 'rgba(36,100,93,.07)')
+                  : T.bg,
+                transition:'background .2s',
+              }}
+            >
+              {/* Accent bar */}
+              <div style={{
+                width:3, height:36, borderRadius:2, flexShrink:0,
+                background: isOpen ? T.accent : (T.isDark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.1)'),
+                transition:'background .2s',
+              }}/>
+
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{
+                  fontSize:14, fontWeight:700, lineHeight:1.35, fontFamily:'system-ui',
+                  color: isOpen ? T.accent : T.text,
+                  transition:'color .2s',
+                }}>{us.titel}</div>
+                <div style={{fontSize:11, color:T.textMuted, marginTop:2, fontFamily:'system-ui'}}>
+                  {us.dhikr_poster.length} dhikr
                 </div>
-                <div style={{display:'flex', alignItems:'center', gap:5, flexShrink:0}}>
-                  {isFav && <svg width="12" height="12" viewBox="0 0 24 24" fill="#f5a623"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
-                  {isBm  && <svg width="11" height="13" viewBox="0 0 24 24" fill={T.accent}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>}
-                  {d.mp3_url && <div style={{width:6, height:6, borderRadius:'50%', background:T.accent}}/>}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2.2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      ))}
+              </div>
+
+              {/* Mini indicators */}
+              <div style={{display:'flex', alignItems:'center', gap:5, flexShrink:0}}>
+                {hasFavInSection && <svg width="11" height="11" viewBox="0 0 24 24" fill="#f5a623"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
+                {hasBmInSection  && <svg width="10" height="12" viewBox="0 0 24 24" fill={T.accent}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>}
+                {hasAudio        && <div style={{width:5, height:5, borderRadius:'50%', background:T.accent}}/>}
+
+                {/* Chevron with smooth rotation */}
+                <svg
+                  width="15" height="15" viewBox="0 0 24 24" fill="none"
+                  stroke={isOpen ? T.accent : T.textMuted} strokeWidth="2.2" strokeLinecap="round"
+                  style={{
+                    transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                    transition:'transform .28s cubic-bezier(0.4,0,0.2,1), stroke .2s',
+                    flexShrink:0,
+                  }}
+                >
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </div>
+            </button>
+
+            {/* ── Dhikr rows — smooth accordion panel ── */}
+            <AccordionPanel
+              us={us}
+              onSelectDhikr={onSelectDhikr}
+              favorites={favorites}
+              bookmarks={bookmarks}
+              T={T}
+              isOpen={isOpen}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -660,7 +847,7 @@ export default function DhikrScreen({ onBack }) {
         {/* GRID */}
         {mainTab==='grid' && view==='home' && (
           <div style={{padding:'12px 10px 32px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
-            {GRUPPER.map(g => <GridCard key={g.id} g={g} count={groupCount(g)} onPress={() => goToCat(g)}/>)}
+            {GRUPPER.map(g => <GridCard key={g.id} g={g} count={groupCount(g)} onPress={() => goToCat(g)} T={T}/>)}
           </div>
         )}
 
