@@ -228,20 +228,22 @@ export function generatePrayerPdf({ days, location, month, year }) {
   </thead>
   <tbody>
 ${days.map(d => {
-  const dateStr   = `${year}-${String(month).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`;
-  const dayAbbr   = getDayAbbr(year, month, d.day);
-  const weekend   = isWeekend(year, month, d.day);
-  const isToday   = d.day === todayDay;
+  const day       = d.gregorianDay || d.day;
+  const t         = d.timings || d;
+  const dateStr   = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  const dayAbbr   = getDayAbbr(year, month, day);
+  const weekend   = isWeekend(year, month, day);
+  const isToday   = day === todayDay;
   const rowClass  = [isToday ? 'today' : '', weekend && !isToday ? 'weekend' : ''].filter(Boolean).join(' ');
   return `    <tr class="${rowClass}">
       <td class="day-col">${dayAbbr}</td>
       <td class="date-col"><span class="date-num">${dateStr}</span></td>
-      <td>${fmt24(d.Fajr)}</td>
-      <td>${fmt24(d.Sunrise)}</td>
-      <td>${fmt24(d.Dhuhr)}</td>
-      <td>${fmt24(d.Asr)}</td>
-      <td>${fmt24(d.Maghrib)}</td>
-      <td>${fmt24(d.Isha)}</td>
+      <td>${fmt24(t.Fajr)}</td>
+      <td>${fmt24(t.Sunrise)}</td>
+      <td>${fmt24(t.Dhuhr)}</td>
+      <td>${fmt24(t.Asr)}</td>
+      <td>${fmt24(t.Maghrib)}</td>
+      <td>${fmt24(t.Isha)}</td>
     </tr>`;
 }).join('\n')}
   </tbody>

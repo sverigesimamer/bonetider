@@ -2,90 +2,127 @@ import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import SettingsScreen from './SettingsScreen';
 import AboutScreen from './AboutScreen';
+import DhikrScreen from './DhikrScreen';
 import AboutIcon from '../icons/about-svgrepo-com.svg';
+import TasbihIcon from '../icons/tasbih.svg';
 
-function MenuRow({ icon, label, sublabel, onPress, T, accent }) {
+const MENU_ITEMS = [
+  {
+    id: 'settings',
+    label: 'Inställningar',
+    sublabel: 'Beräkningsmetod, notiser',
+    emoji: null,
+    svgIcon: (accent) => (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    ),
+    accentColor: null, // use T.accent
+  },
+  {
+    id: 'dhikr',
+    label: 'Dhikr & Du\'a',
+    sublabel: '215 dhikr, 36 kategorier',
+    imgSrc: TasbihIcon,
+    accentColor: '#7B5EA7',
+  },
+  {
+    id: 'about',
+    label: 'Om oss',
+    sublabel: 'Vilka är islam.nu?',
+    imgSrc: AboutIcon,
+    accentColor: '#3A86C8',
+  },
+];
+
+function GridCard({ item, onPress, T }) {
+  const accent = item.accentColor || T.accent;
   return (
     <button
       onClick={onPress}
       style={{
-        display: 'flex', alignItems: 'center', gap: 14,
-        width: '100%', background: T.card,
-        border: `1px solid ${T.border}`, borderRadius: 14,
-        padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
+        background: T.card,
+        border: `1px solid ${T.border}`,
+        borderRadius: 18,
+        padding: '18px 14px 14px',
+        cursor: 'pointer',
+        textAlign: 'center',
         WebkitTapHighlightColor: 'transparent',
-        marginBottom: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 8,
+        transition: 'transform .12s',
+        WebkitUserSelect: 'none',
       }}
     >
+      {/* Icon container */}
       <div style={{
-        width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-        background: accent ? `${accent}18` : T.bgSecondary,
+        width: 56, height: 56, borderRadius: 16,
+        background: `${accent}18`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: 2,
       }}>
-        {icon}
+        {item.svgIcon ? (
+          item.svgIcon(accent)
+        ) : (
+          <img
+            src={item.imgSrc}
+            alt={item.label}
+            style={{
+              width: 30, height: 30, objectFit: 'contain',
+              filter: T.isDark
+                ? 'invert(1) opacity(0.85)'
+                : item.id === 'dhikr'
+                  ? 'invert(30%) sepia(40%) saturate(600%) hue-rotate(250deg) brightness(80%)'
+                  : 'invert(28%) sepia(50%) saturate(400%) hue-rotate(180deg) brightness(85%)',
+            }}
+          />
+        )}
       </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: T.text, fontFamily: 'system-ui' }}>{label}</div>
-        {sublabel && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2, fontFamily: 'system-ui' }}>{sublabel}</div>}
+      <div style={{ fontSize: 13, fontWeight: 700, color: T.text, fontFamily: 'system-ui', lineHeight: 1.2 }}>
+        {item.label}
       </div>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round">
-        <path d="M9 18l6-6-6-6"/>
-      </svg>
+      {item.sublabel && (
+        <div style={{ fontSize: 10.5, color: T.textMuted, fontFamily: 'system-ui', lineHeight: 1.3 }}>
+          {item.sublabel}
+        </div>
+      )}
     </button>
   );
 }
 
 export default function MoreScreen() {
   const { theme: T } = useTheme();
-  const [view, setView] = useState('menu'); // 'menu' | 'settings' | 'about'
+  const [view, setView] = useState('menu');
 
   if (view === 'settings') return <SettingsScreen onBack={() => setView('menu')} />;
+  if (view === 'dhikr')    return <DhikrScreen    onBack={() => setView('menu')} />;
   if (view === 'about')    return <AboutScreen    onBack={() => setView('menu')} />;
 
   return (
     <div style={{ background: T.bg, minHeight: '100%', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{
-        padding: '20px 16px 12px',
-        paddingTop: 'max(20px, env(safe-area-inset-top))',
-      }}>
-        <div style={{ fontSize: 26, fontWeight: 800, color: T.text, letterSpacing: '-.4px', marginBottom: 24 }}>
+      <div style={{ padding: '20px 16px 12px', paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
+        <div style={{ fontSize: 26, fontWeight: 800, color: T.text, letterSpacing: '-.4px', marginBottom: 20 }}>
           Visa mer
         </div>
 
-        {/* Settings */}
-        <MenuRow
-          T={T}
-          accent={T.accent}
-          label="Inställningar"
-          sublabel="Beräkningsmetod, skola, notiser"
-          icon={
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-          }
-          onPress={() => setView('settings')}
-        />
-
-        {/* Om oss */}
-        <MenuRow
-          T={T}
-          accent="#5B9BD5"
-          label="Om oss"
-          sublabel="Vilka är islam.nu?"
-          icon={
-            <img
-              src={AboutIcon}
-              alt=""
-              style={{
-                width: 22, height: 22, objectFit: 'contain',
-                filter: T.isDark
-                  ? 'invert(1) opacity(0.8)'
-                  : 'invert(35%) sepia(50%) saturate(400%) hue-rotate(180deg) brightness(90%)',
-              }}
+        {/* Grid layout — 3 items */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 10,
+        }}>
+          {MENU_ITEMS.map(item => (
+            <GridCard
+              key={item.id}
+              item={item}
+              onPress={() => setView(item.id)}
+              T={T}
             />
-          }
-          onPress={() => setView('about')}
-        />
+          ))}
+        </div>
       </div>
     </div>
   );
