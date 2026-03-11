@@ -142,7 +142,7 @@ function AudioPlayer({ url, T }) {
   };
   if (!url) return null;
   return (
-    <div style={{ marginTop:14, background:'rgba(255,255,255,.07)', borderRadius:12, padding:'11px 13px', display:'flex', alignItems:'center', gap:10 }}>
+    <div style={{ marginTop:14, background: T.isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)', borderRadius:12, padding:'11px 13px', display:'flex', alignItems:'center', gap:10 }}>
       <audio ref={ref} src={url} preload="none"
         onTimeUpdate={e => setSt(s => ({...s, progress: e.target.currentTime}))}
         onDurationChange={e => setSt(s => ({...s, duration: e.target.duration}))}
@@ -161,10 +161,10 @@ function AudioPlayer({ url, T }) {
          <svg width="11" height="12" viewBox="0 0 11 12" fill="#fff"><path d="M0 0L11 6L0 12Z"/></svg>}
       </button>
       <div style={{flex:1, minWidth:0}}>
-        <div onClick={seek} style={{height:3, borderRadius:3, background:'rgba(255,255,255,.18)', cursor:'pointer', position:'relative', marginBottom:5}}>
+        <div onClick={seek} style={{height:3, borderRadius:3, background: T.isDark ? 'rgba(255,255,255,.2)' : 'rgba(0,0,0,.15)', cursor:'pointer', position:'relative', marginBottom:5}}>
           <div style={{position:'absolute',left:0,top:0,height:'100%',borderRadius:3,background:T.accent,width:st.duration?`${(st.progress/st.duration)*100}%`:'0%',transition:'width .2s linear'}}/>
         </div>
-        <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'rgba(255,255,255,.5)',fontFamily:'system-ui'}}>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:11,fontWeight:500,color: T.isDark ? 'rgba(255,255,255,.75)' : 'rgba(0,0,0,.55)',fontFamily:'system-ui',letterSpacing:'.3px'}}>
           <span>{fmt(st.progress)}</span><span>{fmt(st.duration)}</span>
         </div>
       </div>
