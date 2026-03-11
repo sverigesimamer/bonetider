@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useTheme } from '../context/ThemeContext';
 import { useBooks } from '../hooks/useBooks';
 import { CATEGORIES } from '../data/books';
+import PdfCover from './PdfCover';
 
 /* ─────────────────────────────────────────────────────────────
    SHARED ATOMS
@@ -30,8 +31,8 @@ function CatChip({ categoryId, T, small }) {
   );
 }
 
-/* Book cover — pure CSS, no images needed */
-function Cover({ book, w, h, T }) {
+/* Book cover — renders first PDF page, falls back to CSS */
+function CssCover({ book, w, h, T }) {
   const radius = w > 90 ? 12 : 8;
   return (
     <div style={{
@@ -41,7 +42,6 @@ function Cover({ book, w, h, T }) {
       boxShadow: `0 ${w > 90 ? 12 : 5}px ${w > 90 ? 32 : 14}px rgba(0,0,0,${T.isDark ? '.5' : '.2'})`,
       border: `1px solid rgba(255,255,255,0.07)`,
     }}>
-      {/* geometric pattern */}
       <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:.13 }}
         viewBox="0 0 60 80" preserveAspectRatio="xMidYMid slice">
         <defs>
@@ -51,9 +51,7 @@ function Cover({ book, w, h, T }) {
         </defs>
         <rect width="60" height="80" fill={`url(#pat-${book.id})`}/>
       </svg>
-      {/* spine line */}
       <div style={{ position:'absolute', left:0, top:0, bottom:0, width:3, background:'rgba(255,255,255,0.12)' }}/>
-      {/* bottom title */}
       <div style={{
         position:'absolute', bottom:0, left:0, right:0,
         padding: w > 90 ? '24px 8px 8px' : '16px 5px 5px',
@@ -68,16 +66,27 @@ function Cover({ book, w, h, T }) {
           <div style={{ fontSize:8, color:'rgba(255,255,255,.6)', marginTop:3, fontFamily:'system-ui' }}>{book.author}</div>
         )}
       </div>
-      {/* "Snart" overlay */}
       {!book.available && (
-        <div style={{
-          position:'absolute', inset:0, background:'rgba(0,0,0,.42)',
-          display:'flex', alignItems:'center', justifyContent:'center',
-        }}>
+        <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.42)', display:'flex', alignItems:'center', justifyContent:'center' }}>
           <span style={{ fontSize:9, color:'rgba(255,255,255,.75)', fontWeight:700, letterSpacing:1.2, textTransform:'uppercase', fontFamily:'system-ui' }}>Snart</span>
         </div>
       )}
     </div>
+  );
+}
+
+function Cover({ book, w, h, T }) {
+  const radius = w > 90 ? 12 : 8;
+  const shadow = `0 ${w > 90 ? 12 : 5}px ${w > 90 ? 32 : 14}px rgba(0,0,0,${T.isDark ? '.5' : '.2'})`;
+  return (
+    <PdfCover
+      pdfPath={book.pdfPath}
+      bookId={book.id}
+      width={w}
+      height={h}
+      style={{ borderRadius: radius, boxShadow: shadow, border: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}
+      fallback={<CssCover book={book} w={w} h={h} T={T} />}
+    />
   );
 }
 
