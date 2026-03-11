@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AppProvider } from './context/AppContext';
 import NewHomeScreen  from './components/NewHomeScreen';
-import PrayerScreen   from './components/HomeScreen';       // renamed logically
+import PrayerScreen   from './components/HomeScreen';
 import MonthlyScreen  from './components/MonthlyScreen';
 import QiblaScreen    from './components/QiblaScreen';
 import EbooksScreen   from './components/EbooksScreen';
@@ -11,28 +11,26 @@ import SvgIcon        from './components/SvgIcon';
 import KabaIcon       from './icons/kaba.svg';
 import PrayerTimesIcon from './icons/prayer-times.svg';
 
-// Teal filter for active state on custom SVG icons
-// Matches accent color #2D8B78 (dark) and #24645d (light)
 function svgColorFilter(isDark) {
-  // Both modes use a green tone — dark uses #2D8B78, light uses #24645d
-  // CSS filter to approximate these from black SVG paths
   return isDark
     ? 'invert(48%) sepia(60%) saturate(400%) hue-rotate(120deg) brightness(90%)'
     : 'invert(30%) sepia(60%) saturate(500%) hue-rotate(130deg) brightness(80%)';
 }
 
 const TABS = [
-  { id: 'home',     type: 'icon',   iconName: 'home',   label: 'Hem'          },
-  { id: 'prayer',   type: 'custom', icon: 'prayer',     label: 'Bönetider'    },
-  { id: 'qibla',    type: 'custom', icon: 'kaba',       label: 'Qibla'        },
-  { id: 'ebooks',   type: 'icon',   iconName: 'book',   label: 'E-böcker'     },
+  { id: 'home',     type: 'icon',   iconName: 'home',     label: 'Hem'           },
+  { id: 'prayer',   type: 'custom', icon: 'prayer',       label: 'Bönetider'     },
+  { id: 'qibla',    type: 'custom', icon: 'kaba',         label: 'Qibla'         },
+  { id: 'ebooks',   type: 'icon',   iconName: 'book',     label: 'E-böcker'      },
   { id: 'settings', type: 'icon',   iconName: 'settings', label: 'Inställningar' },
 ];
 
 function Shell() {
   const { theme: T } = useTheme();
-  const [tab, setTab] = useState('home');
+  const [tab, setTab]             = useState('home');
   const [showMonthly, setShowMonthly] = useState(false);
+  // Tab bar visibility — hidden while PDF reader is open
+  const [tabBarVisible, setTabBarVisible] = useState(true);
 
   const renderScreen = () => {
     if (tab === 'prayer' && showMonthly) return <MonthlyScreen onBack={() => setShowMonthly(false)} />;
@@ -40,7 +38,13 @@ function Shell() {
       case 'home':     return <NewHomeScreen />;
       case 'prayer':   return <PrayerScreen onMonthlyPress={() => setShowMonthly(true)} />;
       case 'qibla':    return <QiblaScreen />;
-      case 'ebooks':   return <EbooksScreen />;
+      case 'ebooks':
+        return (
+          <EbooksScreen
+            onReaderOpen={() => setTabBarVisible(false)}
+            onReaderClose={() => setTabBarVisible(true)}
+          />
+        );
       case 'settings': return <SettingsScreen />;
       default:         return <NewHomeScreen />;
     }
@@ -57,7 +61,7 @@ function Shell() {
       <div key={tab + (showMonthly ? '-monthly' : '')} style={{
         flex: 1, overflowY: 'auto', overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
-        paddingBottom: 90,
+        paddingBottom: tabBarVisible ? 90 : 0,
       }}>
         {renderScreen()}
       </div>
@@ -67,7 +71,9 @@ function Shell() {
         position: 'absolute',
         bottom: `calc(env(safe-area-inset-bottom, 0px) + 8px)`,
         left: '50%',
-        transform: 'translateX(-50%)',
+        transform: tabBarVisible
+          ? 'translateX(-50%) translateY(0)'
+          : 'translateX(-50%) translateY(calc(100% + 24px))',
         width: 'calc(100% - 32px)',
         maxWidth: 460,
         display: 'flex',
@@ -83,6 +89,7 @@ function Shell() {
           : '0 4px 24px rgba(0,0,0,0.08)',
         padding: '6px 4px',
         zIndex: 200,
+        transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {TABS.map(t => {
           const active = tab === t.id;
@@ -104,15 +111,12 @@ function Shell() {
                 transition: 'background .2s',
               }}
             >
-              {/* Custom SVG image icons (kaba, prayer-times) */}
               {t.type === 'custom' ? (
                 <img
                   src={t.icon === 'kaba' ? KabaIcon : PrayerTimesIcon}
                   alt={t.label}
                   style={{
-                    width: 24,
-                    height: 24,
-                    objectFit: 'contain',
+                    width: 24, height: 24, objectFit: 'contain',
                     filter: active
                       ? svgColorFilter(T.isDark)
                       : T.isDark

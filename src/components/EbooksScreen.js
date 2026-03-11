@@ -31,7 +31,6 @@ function CatChip({ categoryId, T, small }) {
   );
 }
 
-/* Book cover — renders first PDF page, falls back to CSS */
 function CssCover({ book, w, h, T }) {
   const radius = w > 90 ? 12 : 8;
   return (
@@ -51,7 +50,7 @@ function CssCover({ book, w, h, T }) {
         </defs>
         <rect width="60" height="80" fill={`url(#pat-${book.id})`}/>
       </svg>
-      <div style={{ position:'absolute', left:0, top:0, bottom:0, width:3, background:'rgba(255,255,255,0.12)' }}/>
+      <div style={{ position:'absolute', left:0, top:0, bottom:0, width:3, background:'rgba(255,255,255,0.12)'}}/>
       <div style={{
         position:'absolute', bottom:0, left:0, right:0,
         padding: w > 90 ? '24px 8px 8px' : '16px 5px 5px',
@@ -92,55 +91,189 @@ function Cover({ book, w, h, T }) {
 
 /* ─────────────────────────────────────────────────────────────
    PDF READER
+   - Renders PDF pages as <canvas> via pdf.js (CDN) so we get
+     proper pinch-zoom, swipe-to-turn-page, and fit-to-screen.
+   - Tab bar is hidden while reader is open (handled by parent
+     via onReaderOpen / onReaderClose callbacks passed from App).
 ───────────────────────────────────────────────────────────── */
+
 function PdfReader({ book, onClose, onSetPage, onAddBookmark, onRemoveBookmark, onToggleFav }) {
   const { theme: T } = useTheme();
-  const [page, setPage]           = useState(book.lastReadPage || 1);
-  const [total, setTotal]         = useState(book.pageCount || 99);
-  const [controls, setControls]   = useState(true);
-  const [bmToast, setBmToast]     = useState(false);
-  const [jumping, setJumping]     = useState(false);
-  const [jumpVal, setJumpVal]     = useState('');
-  const [bmPanel, setBmPanel]     = useState(false);
-  const [loaded, setLoaded]       = useState(false);
-  const [errored, setErrored]     = useState(false);
-  const [iframeKey, setIframeKey] = useState(0);
-  const timer = useRef(null);
+  const [page, setPage]         = useState(book.lastReadPage || 1);
+  const [total, setTotal]       = useState(book.pageCount || 99);
+  const [controls, setControls] = useState(true);
+  const [bmToast, setBmToast]   = useState(false);
+  const [jumping, setJumping]   = useState(false);
+  const [jumpVal, setJumpVal]   = useState('');
+  const [bmPanel, setBmPanel]   = useState(false);
+  const [status, setStatus]     = useState('loading'); // loading | ready | error
+  const [scale, setScale]       = useState(1);
+
+  const canvasRef   = useRef(null);
+  const pdfDocRef   = useRef(null);
+  const renderingRef = useRef(false);
+  const timerRef    = useRef(null);
+
+  // Pinch-zoom state
+  const pinchRef    = useRef({ active: false, startDist: 0, startScale: 1 });
+  // Swipe state
+  const swipeRef    = useRef({ startX: 0, startY: 0, active: false });
 
   const isBookmarked = book.bookmarks.includes(page);
 
+  // ── Auto-hide controls ──────────────────────────────────────────────────
   const resetTimer = useCallback(() => {
     setControls(true);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setControls(false), 3500);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setControls(false), 3500);
   }, []);
 
-  useEffect(() => { resetTimer(); return () => clearTimeout(timer.current); }, [resetTimer]);
+  useEffect(() => { resetTimer(); return () => clearTimeout(timerRef.current); }, [resetTimer]);
+
+  // ── Save page progress ──────────────────────────────────────────────────
+  useEffect(() => { onSetPage(book.id, page, total); }, [page]); // eslint-disable-line
+
+  // ── Load pdf.js from CDN ────────────────────────────────────────────────
+  useEffect(() => {
+    if (window.pdfjsLib) { loadDocument(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      loadDocument();
+    };
+    script.onerror = () => setStatus('error');
+    document.head.appendChild(script);
+    return () => {};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadDocument = async () => {
+    try {
+      setStatus('loading');
+      const pdf = await window.pdfjsLib.getDocument(book.pdfPath).promise;
+      pdfDocRef.current = pdf;
+      setTotal(pdf.numPages);
+      setStatus('ready');
+    } catch (e) {
+      console.error('PDF load error', e);
+      setStatus('error');
+    }
+  };
+
+  // ── Render page onto canvas ─────────────────────────────────────────────
+  const renderPage = useCallback(async (pageNum, extraScale = 1) => {
+    if (!pdfDocRef.current || renderingRef.current) return;
+    renderingRef.current = true;
+    try {
+      const pdfPage  = await pdfDocRef.current.getPage(pageNum);
+      const canvas   = canvasRef.current;
+      if (!canvas) return;
+
+      const viewport0 = pdfPage.getViewport({ scale: 1 });
+      const container = canvas.parentElement;
+      const fitScale  = Math.min(
+        container.clientWidth  / viewport0.width,
+        container.clientHeight / viewport0.height
+      );
+      const finalScale = fitScale * extraScale;
+      const viewport   = pdfPage.getViewport({ scale: finalScale });
+
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width  = viewport.width  * dpr;
+      canvas.height = viewport.height * dpr;
+      canvas.style.width  = viewport.width  + 'px';
+      canvas.style.height = viewport.height + 'px';
+
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      await pdfPage.render({ canvasContext: ctx, viewport }).promise;
+    } catch (e) {
+      console.error('Render error', e);
+    } finally {
+      renderingRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
-    onSetPage(book.id, page, total);
-  }, [page]); // eslint-disable-line
+    if (status === 'ready') renderPage(page, scale);
+  }, [status, page, scale, renderPage]);
 
+  // ── Page navigation ─────────────────────────────────────────────────────
   const goTo = useCallback((p) => {
     const clamped = Math.max(1, Math.min(p, total));
     setPage(clamped);
+    setScale(1);
     resetTimer();
   }, [total, resetTimer]);
 
+  // ── Touch: swipe left/right to change page, pinch to zoom ──────────────
+  const onTouchStart = useCallback((e) => {
+    resetTimer();
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchRef.current = {
+        active: true,
+        startDist: Math.hypot(dx, dy),
+        startScale: scale,
+      };
+      swipeRef.current.active = false;
+    } else if (e.touches.length === 1) {
+      swipeRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY, active: true };
+    }
+  }, [scale, resetTimer]);
+
+  const onTouchMove = useCallback((e) => {
+    if (e.touches.length === 2 && pinchRef.current.active) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const newScale = Math.max(0.5, Math.min(4, pinchRef.current.startScale * (dist / pinchRef.current.startDist)));
+      setScale(newScale);
+    }
+  }, []);
+
+  const onTouchEnd = useCallback((e) => {
+    if (pinchRef.current.active) {
+      pinchRef.current.active = false;
+      return;
+    }
+    if (!swipeRef.current.active) return;
+    const dx = e.changedTouches[0].clientX - swipeRef.current.startX;
+    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
+    swipeRef.current.active = false;
+    // Only trigger page turn for mostly-horizontal swipes
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && scale <= 1.05) {
+      if (dx < 0) goTo(page + 1);
+      else goTo(page - 1);
+    } else {
+      resetTimer();
+    }
+  }, [page, goTo, scale, resetTimer]);
+
+  // ── Bookmarks ───────────────────────────────────────────────────────────
   const handleBookmark = () => {
     if (isBookmarked) { onRemoveBookmark(book.id, page); }
     else { onAddBookmark(book.id, page); setBmToast(true); setTimeout(() => setBmToast(false), 2200); }
     resetTimer();
   };
 
-  const pdfUrl = `${book.pdfPath}#page=${page}&toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
-
   return (
     <div
-      style={{ position:'fixed', inset:0, zIndex:1000, background:'#0a0a0a', display:'flex', flexDirection:'column' }}
+      style={{ position:'fixed', inset:0, zIndex:1000, background:'#0a0a0a', display:'flex', flexDirection:'column', touchAction:'none' }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
       onClick={resetTimer}
     >
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes slideDown{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(100%)}}
+      `}</style>
 
       {/* TOP BAR */}
       <div style={{
@@ -148,7 +281,10 @@ function PdfReader({ book, onClose, onSetPage, onAddBookmark, onRemoveBookmark, 
         padding:'12px 14px', paddingTop:'max(14px,env(safe-area-inset-top))',
         background:'linear-gradient(to bottom,rgba(0,0,0,.9),transparent)',
         display:'flex', alignItems:'center', gap:10,
-        transition:'opacity .25s', opacity: controls ? 1 : 0, pointerEvents: controls ? 'auto' : 'none',
+        transition:'opacity .3s, transform .3s',
+        opacity: controls ? 1 : 0,
+        transform: controls ? 'translateY(0)' : 'translateY(-100%)',
+        pointerEvents: controls ? 'auto' : 'none',
       }}>
         <button onClick={onClose} style={btnStyle}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
@@ -189,31 +325,65 @@ function PdfReader({ book, onClose, onSetPage, onAddBookmark, onRemoveBookmark, 
         </div>
       )}
 
-      {/* PDF IFRAME */}
-      <div style={{ flex:1, position:'relative', background:'#111' }}>
-        {!errored ? (
-          <iframe
-            key={iframeKey}
-            src={pdfUrl}
-            title={book.title}
-            style={{ width:'100%', height:'100%', border:'none' }}
-            onLoad={() => setLoaded(true)}
-            onError={() => setErrored(true)}
-          />
-        ) : (
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', gap:12, padding:24 }}>
+      {/* CANVAS AREA */}
+      <div style={{ flex:1, position:'relative', background:'#111', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+        <canvas
+          ref={canvasRef}
+          style={{ display: status === 'ready' ? 'block' : 'none', maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }}
+        />
+
+        {status === 'loading' && (
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
+            <div style={{ width:30, height:30, borderRadius:'50%', border:`3px solid rgba(255,255,255,.1)`, borderTopColor:T.accent, animation:'spin .8s linear infinite' }}/>
+            <div style={{ color:'rgba(255,255,255,.4)', fontSize:12, fontFamily:'system-ui' }}>Laddar PDF…</div>
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12, padding:24 }}>
             <div style={{ fontSize:44 }}>📄</div>
             <div style={{ color:'#fff', fontSize:16, fontWeight:700, fontFamily:'system-ui', textAlign:'center' }}>Kunde inte ladda PDF:en</div>
             <div style={{ color:'rgba(255,255,255,.5)', fontSize:13, textAlign:'center', fontFamily:'system-ui' }}>Kontrollera att filen finns i public/books/</div>
-            <button onClick={() => { setErrored(false); setLoaded(false); setIframeKey(k => k+1); }}
-              style={{ marginTop:8, padding:'10px 24px', borderRadius:12, background:T.accent, color:'#fff', border:'none', cursor:'pointer', fontSize:14, fontWeight:700, fontFamily:'system-ui' }}>
+            <button onClick={loadDocument} style={{ marginTop:8, padding:'10px 24px', borderRadius:12, background:T.accent, color:'#fff', border:'none', cursor:'pointer', fontSize:14, fontWeight:700, fontFamily:'system-ui' }}>
               Försök igen
             </button>
           </div>
         )}
-        {!loaded && !errored && (
-          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#111', pointerEvents:'none' }}>
-            <div style={{ width:30, height:30, borderRadius:'50%', border:`3px solid rgba(255,255,255,.1)`, borderTopColor:T.accent, animation:'spin .8s linear infinite' }}/>
+
+        {/* Tap zones for page navigation (invisible left/right thirds) */}
+        {status === 'ready' && scale <= 1.05 && (
+          <>
+            <div
+              onClick={(e) => { e.stopPropagation(); goTo(page - 1); }}
+              style={{ position:'absolute', left:0, top:0, bottom:0, width:'20%', cursor:'pointer', zIndex:5 }}
+            />
+            <div
+              onClick={(e) => { e.stopPropagation(); goTo(page + 1); }}
+              style={{ position:'absolute', right:0, top:0, bottom:0, width:'20%', cursor:'pointer', zIndex:5 }}
+            />
+          </>
+        )}
+
+        {/* Page turn hint arrows */}
+        {status === 'ready' && controls && scale <= 1.05 && (
+          <>
+            {page > 1 && (
+              <div style={{ position:'absolute', left:8, top:'50%', transform:'translateY(-50%)', background:'rgba(0,0,0,.4)', borderRadius:8, padding:'10px 6px', pointerEvents:'none', opacity:.6 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+              </div>
+            )}
+            {page < total && (
+              <div style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'rgba(0,0,0,.4)', borderRadius:8, padding:'10px 6px', pointerEvents:'none', opacity:.6 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Zoom indicator */}
+        {scale > 1.1 && (
+          <div style={{ position:'absolute', bottom:100, left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,.6)', borderRadius:20, padding:'4px 12px', fontSize:11, color:'rgba(255,255,255,.7)', fontFamily:'system-ui', pointerEvents:'none' }}>
+            {Math.round(scale * 100)}%
           </div>
         )}
       </div>
@@ -223,14 +393,17 @@ function PdfReader({ book, onClose, onSetPage, onAddBookmark, onRemoveBookmark, 
         position:'absolute', bottom:0, left:0, right:0, zIndex:20,
         padding:'28px 16px 16px', paddingBottom:'max(18px,env(safe-area-inset-bottom))',
         background:'linear-gradient(transparent,rgba(0,0,0,.92))',
-        transition:'opacity .25s', opacity: controls ? 1 : 0, pointerEvents: controls ? 'auto' : 'none',
+        transition:'opacity .3s, transform .3s',
+        opacity: controls ? 1 : 0,
+        transform: controls ? 'translateY(0)' : 'translateY(100%)',
+        pointerEvents: controls ? 'auto' : 'none',
       }}>
-        {/* Bookmark toast */}
         {bmToast && (
           <div style={{ position:'absolute', top:-36, left:'50%', transform:'translateX(-50%)', background:T.accent, color:'#fff', borderRadius:20, padding:'6px 18px', fontSize:12, fontWeight:700, fontFamily:'system-ui', whiteSpace:'nowrap', animation:'fadeUp .25s ease' }}>
             ✓ Bokmärke sparat — sida {page}
           </div>
         )}
+
         {/* Scrubber */}
         <style>{`
           input[type=range]{-webkit-appearance:none;appearance:none;height:3px;border-radius:3px;background:rgba(255,255,255,.2);outline:none;cursor:pointer}
@@ -240,12 +413,10 @@ function PdfReader({ book, onClose, onSetPage, onAddBookmark, onRemoveBookmark, 
           onChange={e => goTo(Number(e.target.value))}
           style={{ width:'100%', marginBottom:12 }}
         />
-        {/* Controls row */}
+
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-          {/* Prev */}
           <button onClick={() => goTo(page - 1)} disabled={page <= 1} style={{ ...navBtnStyle, opacity: page <= 1 ? .3 : 1 }}>‹</button>
 
-          {/* Page counter / jump */}
           <button onClick={() => { setJumping(v => !v); setJumpVal(String(page)); }}
             style={{ background:'none', border:'none', cursor:'pointer', color:'#fff', fontFamily:'system-ui', WebkitTapHighlightColor:'transparent', minWidth:80, textAlign:'center' }}>
             {jumping ? (
@@ -264,14 +435,12 @@ function PdfReader({ book, onClose, onSetPage, onAddBookmark, onRemoveBookmark, 
             )}
           </button>
 
-          {/* Bookmark */}
           <button onClick={handleBookmark} style={{ background:'rgba(255,255,255,.12)', border:'none', borderRadius:10, padding:'8px 14px', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill={isBookmarked ? T.accent : 'none'} stroke={isBookmarked ? T.accent : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
             </svg>
           </button>
 
-          {/* Next */}
           <button onClick={() => goTo(page + 1)} disabled={page >= total} style={{ ...navBtnStyle, opacity: page >= total ? .3 : 1 }}>›</button>
         </div>
       </div>
@@ -279,7 +448,7 @@ function PdfReader({ book, onClose, onSetPage, onAddBookmark, onRemoveBookmark, 
   );
 }
 
-const btnStyle = { background:'none', border:'none', cursor:'pointer', padding:7, WebkitTapHighlightColor:'transparent' };
+const btnStyle    = { background:'none', border:'none', cursor:'pointer', padding:7, WebkitTapHighlightColor:'transparent' };
 const navBtnStyle = { background:'rgba(255,255,255,.12)', border:'none', borderRadius:10, padding:'8px 18px', color:'#fff', cursor:'pointer', fontSize:22, lineHeight:1, WebkitTapHighlightColor:'transparent' };
 
 /* ─────────────────────────────────────────────────────────────
@@ -291,9 +460,7 @@ function BookDetail({ book, allBooks, onBack, onRead, onToggleFav, T }) {
 
   return (
     <div style={{ background:T.bg, minHeight:'100%', fontFamily:"'Georgia',serif" }}>
-      {/* HERO */}
       <div style={{ background:`linear-gradient(180deg, ${book.coverColor}dd 0%, ${book.coverColor}44 60%, ${T.bg} 100%)`, paddingBottom:28 }}>
-        {/* Top nav */}
         <div style={{ display:'flex', justifyContent:'space-between', padding:'14px 14px 0', paddingTop:'max(14px,env(safe-area-inset-top))' }}>
           <button onClick={onBack} style={{ background:'rgba(0,0,0,.3)', border:'none', borderRadius:10, padding:'8px 12px', cursor:'pointer', color:'#fff', display:'flex', alignItems:'center', gap:6, WebkitTapHighlightColor:'transparent' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
@@ -306,7 +473,6 @@ function BookDetail({ book, allBooks, onBack, onRead, onToggleFav, T }) {
           </button>
         </div>
 
-        {/* Cover + title */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', paddingTop:24, gap:16 }}>
           <Cover book={book} w={140} h={196} T={T} />
           <div style={{ textAlign:'center', padding:'0 20px' }}>
@@ -321,10 +487,7 @@ function BookDetail({ book, allBooks, onBack, onRead, onToggleFav, T }) {
         </div>
       </div>
 
-      {/* BODY */}
       <div style={{ padding:'0 16px 40px' }}>
-
-        {/* Progress card */}
         {hasProgress && (
           <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:'14px 16px', marginBottom:16 }}>
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
@@ -336,7 +499,6 @@ function BookDetail({ book, allBooks, onBack, onRead, onToggleFav, T }) {
           </div>
         )}
 
-        {/* CTA */}
         <div style={{ display:'flex', gap:10, marginBottom:22 }}>
           {book.available ? (
             <>
@@ -356,7 +518,6 @@ function BookDetail({ book, allBooks, onBack, onRead, onToggleFav, T }) {
           )}
         </div>
 
-        {/* Bookmarks */}
         {book.bookmarks.length > 0 && (
           <div style={{ marginBottom:20 }}>
             <SectionLabel label="Bokmärken" T={T} />
@@ -370,13 +531,11 @@ function BookDetail({ book, allBooks, onBack, onRead, onToggleFav, T }) {
           </div>
         )}
 
-        {/* Description */}
         <div style={{ marginBottom:22 }}>
           <SectionLabel label="Om boken" T={T} />
           <p style={{ fontSize:15, lineHeight:1.75, color:T.textSecondary, margin:0 }}>{book.longDescription}</p>
         </div>
 
-        {/* Tags */}
         {book.tags?.length > 0 && (
           <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:24 }}>
             {book.tags.map(tag => (
@@ -385,7 +544,6 @@ function BookDetail({ book, allBooks, onBack, onRead, onToggleFav, T }) {
           </div>
         )}
 
-        {/* Related */}
         {related.length > 0 && (
           <div>
             <SectionLabel label="Fler böcker i kategorin" T={T} />
@@ -412,16 +570,16 @@ function SectionLabel({ label, T }) {
    LIBRARY
 ───────────────────────────────────────────────────────────── */
 const SORT_OPTS = [
-  { id:'az',       label:'A – Ö' },
-  { id:'recent',   label:'Senast öppnad' },
-  { id:'newest',   label:'Nyast utgiven' },
-  { id:'favorites',label:'Favoriter' },
+  { id:'az',        label:'A – Ö' },
+  { id:'recent',    label:'Senast öppnad' },
+  { id:'newest',    label:'Nyast utgiven' },
+  { id:'favorites', label:'Favoriter' },
 ];
 
 function Library({ books, onSelect, T }) {
-  const [cat,    setCat]    = useState('all');
-  const [sort,   setSort]   = useState('az');
-  const [query,  setQuery]  = useState('');
+  const [cat,      setCat]      = useState('all');
+  const [sort,     setSort]     = useState('az');
+  const [query,    setQuery]    = useState('');
   const [sortOpen, setSortOpen] = useState(false);
 
   const favorites  = useMemo(() => books.filter(b => b.isFavorite), [books]);
@@ -454,11 +612,9 @@ function Library({ books, onSelect, T }) {
         input::placeholder{color:${T.textMuted};opacity:.7}
       `}</style>
 
-      {/* HEADER */}
       <div style={{ padding:'20px 16px 0' }}>
         <h1 style={{ fontSize:27, fontWeight:800, color:T.text, margin:'0 0 16px', letterSpacing:'-.5px', fontFamily:"'Georgia',serif" }}>E-böcker</h1>
 
-        {/* Search */}
         <div style={{ position:'relative', marginBottom:12 }}>
           <svg style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2.2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -470,7 +626,6 @@ function Library({ books, onSelect, T }) {
           />
         </div>
 
-        {/* Category chips */}
         <div style={{ display:'flex', gap:7, overflowX:'auto', paddingBottom:14, scrollbarWidth:'none', WebkitOverflowScrolling:'touch' }}>
           {CATEGORIES.map(c => {
             const active = cat === c.id;
@@ -488,7 +643,6 @@ function Library({ books, onSelect, T }) {
         </div>
       </div>
 
-      {/* CONTINUE READING */}
       {showSections && inProgress.length > 0 && (
         <Section title="Fortsätt läsa" T={T}>
           <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:4, WebkitOverflowScrolling:'touch' }}>
@@ -504,7 +658,6 @@ function Library({ books, onSelect, T }) {
         </Section>
       )}
 
-      {/* FAVORITES */}
       {showSections && favorites.length > 0 && (
         <Section title="Favoriter" T={T}>
           <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:4, WebkitOverflowScrolling:'touch' }}>
@@ -518,13 +671,11 @@ function Library({ books, onSelect, T }) {
         </Section>
       )}
 
-      {/* ALL BOOKS */}
       <div style={{ padding:'0 16px 40px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
           <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:'uppercase', letterSpacing:1.2 }}>
             {query ? `Resultat (${filtered.length})` : 'Alla böcker'}
           </div>
-          {/* Sort */}
           <div style={{ position:'relative' }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setSortOpen(v => !v)} style={{ display:'flex', alignItems:'center', gap:5, background:T.card, border:`1px solid ${T.border}`, borderRadius:10, padding:'5px 10px', cursor:'pointer', fontSize:11, fontWeight:600, color:T.textMuted, WebkitTapHighlightColor:'transparent' }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
@@ -595,14 +746,15 @@ function BookRow({ book, onSelect, T, idx }) {
 
 /* ─────────────────────────────────────────────────────────────
    ROOT SCREEN
+   Passes isReaderOpen up so App.js can hide/show the tab bar.
 ───────────────────────────────────────────────────────────── */
-export default function EbooksScreen() {
+export default function EbooksScreen({ onReaderOpen, onReaderClose }) {
   const { theme: T } = useTheme();
   const { books, toggleFavorite, setLastReadPage, addBookmark, removeBookmark, markOpened } = useBooks();
 
-  const [view,          setView]          = useState('library');  // library | detail | reader
-  const [selectedId,    setSelectedId]    = useState(null);
-  const [readerPage,    setReaderPage]    = useState(null);
+  const [view,       setView]       = useState('library');
+  const [selectedId, setSelectedId] = useState(null);
+  const [readerPage, setReaderPage] = useState(null);
 
   const selectedBook = useMemo(() => books.find(b => b.id === selectedId) || null, [books, selectedId]);
 
@@ -615,7 +767,14 @@ export default function EbooksScreen() {
   const openReader = useCallback((startPage = null) => {
     setReaderPage(startPage);
     setView('reader');
-  }, []);
+    onReaderOpen?.();
+  }, [onReaderOpen]);
+
+  const closeReader = useCallback(() => {
+    setView('detail');
+    setReaderPage(null);
+    onReaderClose?.();
+  }, [onReaderClose]);
 
   const readerBook = useMemo(() => {
     if (!selectedBook) return null;
@@ -627,7 +786,7 @@ export default function EbooksScreen() {
     return (
       <PdfReader
         book={readerBook}
-        onClose={() => { setView('detail'); setReaderPage(null); }}
+        onClose={closeReader}
         onSetPage={setLastReadPage}
         onAddBookmark={addBookmark}
         onRemoveBookmark={removeBookmark}

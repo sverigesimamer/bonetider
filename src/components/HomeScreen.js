@@ -10,7 +10,6 @@ import {
 } from '../utils/prayerUtils';
 import LocationModal from './LocationModal';
 import { reverseGeocode } from '../services/prayerApi';
-import { useBanner } from '../hooks/useBanner';
 import SvgIcon from './SvgIcon';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -112,7 +111,6 @@ export default function HomeScreen({ onMonthlyPress }) {
   const [detectedLocation, setDetectedLocation] = useState(null);
   const [detecting,        setDetecting]        = useState(false);
   const [slideIndex,       setSlideIndex]       = useState(0);
-  const [showBellPanel,    setShowBellPanel]    = useState(false);
   const touchStartX = useRef(null);
 
   // Single clock tick — used only for date string + prayer status
@@ -135,8 +133,6 @@ export default function HomeScreen({ onMonthlyPress }) {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
-
-  const { banners, allBanners, unreadCount, read, dismiss: dismissBanner, markRead, markAllRead } = useBanner();
 
   // ── Load prayers ──────────────────────────────────────────────────────────
   // Use a ref to track what we last fetched — avoid re-fetching same coords
@@ -297,7 +293,6 @@ export default function HomeScreen({ onMonthlyPress }) {
   return (
     <div style={{ padding:'12px 14px 12px', background:T.bg, minHeight:'100%', boxSizing:'border-box' }}
       onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-      onMouseDown={() => setShowBellPanel(false)}
     >
       {showModal && (
         <LocationModal detected={detectedLocation} onConfirm={handleLocationConfirm}
@@ -323,7 +318,7 @@ export default function HomeScreen({ onMonthlyPress }) {
           <button
             onClick={(e) => { e.stopPropagation(); onMonthlyPress(); }}
             style={{
-              position:'absolute', top:4, right: allBanners.length > 0 ? 44 : 4,
+              position:'absolute', top:4, right: 4,
               background:'none', border:'none', cursor:'pointer',
               padding:6, WebkitTapHighlightColor:'transparent',
               opacity: 0.6,
@@ -333,93 +328,6 @@ export default function HomeScreen({ onMonthlyPress }) {
           </button>
         )}
 
-        {/* Bell icon */}
-        {allBanners.length > 0 && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowBellPanel(v => !v);
-              allBanners.forEach(b => markRead(b.id));
-            }}
-            style={{
-              position:'absolute', top:4, right:4,
-              background:'none', border:'none', cursor:'pointer',
-              padding:6, WebkitTapHighlightColor:'transparent',
-            }}
-          >
-            <div style={{ position:'relative', display:'inline-flex' }}>
-              <SvgIcon
-                name="bell"
-                size={22}
-                color={unreadCount > 0 ? T.accent : T.textMuted}
-                style={{ opacity: unreadCount > 0 ? 1 : 0.5 }}
-              />
-              {unreadCount > 0 && (
-                <div style={{
-                  position:'absolute', top:-3, right:-3,
-                  width:16, height:16, borderRadius:8,
-                  background:'#FF3B30', border:`2px solid ${T.bg}`,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                }}>
-                  <span style={{ fontSize:9, fontWeight:800, color:'#fff', fontFamily:"'Inter',system-ui,sans-serif", lineHeight:1 }}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                </div>
-              )}
-            </div>
-          </button>
-        )}
-
-        {/* Notification panel */}
-        {showBellPanel && (
-          <div
-            onMouseDown={e => e.stopPropagation()}
-            style={{
-              position:'absolute', top:36, right:0, left:0,
-              background:T.card, border:`1px solid ${T.border}`,
-              borderRadius:16, zIndex:500,
-              boxShadow:`0 8px 32px rgba(0,0,0,${T.isDark?'0.5':'0.12'})`,
-              overflow:'hidden', animation:'fadeUp .2s ease both',
-            }}
-          >
-            <div style={{
-              display:'flex', alignItems:'center', justifyContent:'space-between',
-              padding:'12px 14px 10px', borderBottom:`1px solid ${T.border}`,
-            }}>
-              <span style={{ fontSize:13, fontWeight:700, color:T.text, fontFamily:"'Inter',system-ui,sans-serif" }}>Meddelanden</span>
-              <button onClick={() => { markAllRead(); setShowBellPanel(false); }} style={{
-                background:'none', border:'none', cursor:'pointer',
-                fontSize:11, fontWeight:700, color:T.accent, fontFamily:"'Inter',system-ui,sans-serif", padding:'2px 0',
-              }}>Markera alla lästa</button>
-            </div>
-            {allBanners.length === 0 ? (
-              <div style={{ padding:'16px 14px', fontSize:13, color:T.textMuted, textAlign:'center', fontFamily:"'Inter',system-ui,sans-serif" }}>
-                Inga meddelanden
-              </div>
-            ) : allBanners.map(b => {
-              const isRead = read.includes(b.id);
-              return (
-                <div key={b.id} style={{
-                  padding:'11px 14px', borderBottom:`1px solid ${T.border}`,
-                  background: isRead ? 'transparent' : T.isDark ? 'rgba(201,168,76,0.06)' : 'rgba(36,100,93,0.05)',
-                  display:'flex', alignItems:'flex-start', gap:10, textAlign:'left',
-                }}>
-                  <div style={{ width:7, height:7, borderRadius:4, flexShrink:0, marginTop:5, background: isRead ? 'transparent' : T.accent }}/>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:13, color:T.textSecondary, lineHeight:1.5, fontFamily:"'Inter',system-ui,sans-serif" }}>{b.message}</div>
-                    {b.linkText && b.linkUrl && (
-                      <a href={b.linkUrl} target="_blank" rel="noopener noreferrer" style={{
-                        display:'inline-block', marginTop:5, fontSize:12, fontWeight:700,
-                        color:T.accent, textDecoration:'underline', textUnderlineOffset:2,
-                        fontFamily:"'Inter',system-ui,sans-serif",
-                      }}>{b.linkText} →</a>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
 
         <div style={{ fontSize:14, fontWeight:600, color:T.textMuted, textTransform:'capitalize', fontFamily:"'Inter',system-ui,sans-serif", marginBottom:2 }}>
           {dateStr}
