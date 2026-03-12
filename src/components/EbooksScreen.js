@@ -934,7 +934,7 @@ function BookRow({ book, onSelect, T, idx }) {
    ROOT SCREEN
    Passes isReaderOpen up so App.js can hide/show the tab bar.
 ───────────────────────────────────────────────────────────── */
-export default function EbooksScreen({ onReaderOpen, onReaderClose, resetToLibrary, onTabBarHide, onTabBarShow }) {
+export default function EbooksScreen({ onReaderOpen, onReaderClose, resetToLibrary, onTabBarHide, onTabBarShow, onBack }) {
   const { theme: T } = useTheme();
   const { books, toggleFavorite, setLastReadPage, addBookmark, removeBookmark, markOpened } = useBooks();
 
@@ -951,6 +951,21 @@ export default function EbooksScreen({ onReaderOpen, onReaderClose, resetToLibra
       onReaderClose?.();
     }
   }, [resetToLibrary]); // eslint-disable-line
+
+  // Edge swipe back — respects current view depth
+  useEffect(() => {
+    const handler = () => {
+      if (view === 'reader') {
+        closeReader();
+      } else if (view === 'detail') {
+        setView('library');
+      } else if (view === 'library') {
+        onBack?.();
+      }
+    };
+    window.addEventListener('edgeSwipeBack', handler);
+    return () => window.removeEventListener('edgeSwipeBack', handler);
+  }, [view]); // eslint-disable-line
 
   const selectedBook = useMemo(() => books.find(b => b.id === selectedId) || null, [books, selectedId]);
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import SettingsScreen from './SettingsScreen';
 import AboutScreen from './AboutScreen';
@@ -145,16 +145,8 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow }) {
   const { theme: T } = useTheme();
   const [view, setView] = useState('menu');
 
-  // Edge swipe back from sub-views to menu
-  useEffect(() => {
-    if (view === 'menu') return;
-    const handler = () => setView('menu');
-    window.addEventListener('edgeSwipeBack', handler);
-    return () => window.removeEventListener('edgeSwipeBack', handler);
-  }, [view]);
-
   if (view === 'settings') return <SettingsScreen onBack={() => setView('menu')} />;
-  if (view === 'ebooks')   return <EbooksScreen onReaderOpen={() => {}} onReaderClose={() => {}} resetToLibrary={false} onTabBarHide={onTabBarHide} onTabBarShow={onTabBarShow} />;
+  if (view === 'ebooks')   return <EbooksScreen onReaderOpen={() => {}} onReaderClose={() => {}} resetToLibrary={false} onTabBarHide={onTabBarHide} onTabBarShow={onTabBarShow} onBack={() => setView('menu')} />;
   if (view === 'about')    return <AboutScreen onBack={() => setView('menu')} />;
   if (view === 'support')  return <SupportScreen onBack={() => setView('menu')} T={T} />;
 
