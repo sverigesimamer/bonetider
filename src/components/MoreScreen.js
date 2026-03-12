@@ -110,14 +110,23 @@ function SupportScreen({ onBack, T }) {
     return () => window.removeEventListener('edgeSwipeBack', handler);
   }, [onBack]);
 
+  const divider = <div style={{ height: 1, background: T.border, margin: '0 0' }} />;
+
+  const PaymentBlock = ({ children }) => (
+    <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+      {children}
+    </div>
+  );
+
   return (
     <div style={{ background: T.bg, minHeight: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif' }}>
+      {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '16px 16px 12px',
         paddingTop: 'max(16px, env(safe-area-inset-top))',
         borderBottom: `1px solid ${T.border}`,
-        position: 'sticky', top: 0, background: T.bg, zIndex: 10,
+        background: T.bg, zIndex: 10,
       }}>
         <button onClick={onBack} style={{
           background: 'none', border: 'none', cursor: 'pointer',
@@ -126,17 +135,106 @@ function SupportScreen({ onBack, T }) {
         }}>‹</button>
         <span style={{ fontSize: 18, fontWeight: 700, color: T.text }}>Stöd oss</span>
       </div>
-      <iframe
-        src="https://islam.nu/stod-oss/"
-        title="Stöd oss"
-        style={{
-          flex: 1,
-          width: '100%',
-          border: 'none',
-          minHeight: 'calc(100dvh - 60px)',
-        }}
-        allow="payment"
-      />
+
+      {/* Payment methods */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 32 }}>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, margin: '20px 16px', overflow: 'hidden' }}>
+
+          {/* Label */}
+          <div style={{ padding: '14px 20px 0', textAlign: 'center' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: T.textMuted }}>Ge en gåva</span>
+          </div>
+
+          {/* Bitcoin */}
+          <PaymentBlock>
+            {/* Bitcoin logo inline SVG */}
+            <svg width="120" height="32" viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="16" r="16" fill="#F7931A"/>
+              <path d="M22.5 13.8c.3-2-1.2-3.1-3.3-3.8l.7-2.7-1.6-.4-.6 2.6-1.3-.3.6-2.6-1.6-.4-.7 2.7-1.1-.3v0l-2.2-.5-.4 1.7s1.2.3 1.1.3c.6.2.7.6.7.9l-1.7 6.8c-.1.2-.3.5-.8.4.0.0-1.1-.3-1.1-.3l-.8 1.8 2.1.5 1.1.3-.7 2.7 1.6.4.7-2.7 1.3.3-.7 2.7 1.6.4.7-2.7c2.7.5 4.7.3 5.6-2.1.7-2-.0-3.1-1.5-3.9 1.1-.2 1.9-1 2.1-2.5zm-3.7 5.2c-.5 2-3.9.9-5 .6l.9-3.6c1.1.3 4.6.8 4.1 3zm.5-5.2c-.5 1.8-3.3.9-4.3.6l.8-3.3c.9.2 3.9.7 3.5 2.7z" fill="white"/>
+              <text x="38" y="21" fontFamily="system-ui, -apple-system, sans-serif" fontSize="16" fontWeight="700" fill={T.isDark ? '#fff' : '#1a1a1a'}>bitcoin</text>
+            </svg>
+            <a
+              href="bitcoin:bc1qe62zvm59cltlkqjekz4vz9nueh7hq3ejxcsktk"
+              style={{
+                fontSize: 12, color: T.accent, wordBreak: 'break-all',
+                textAlign: 'center', textDecoration: 'underline',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              bc1qe62zvm59cltlkqjekz4vz9nueh7hq3ejxcsktk
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </PaymentBlock>
+
+          {divider}
+
+          {/* Swish */}
+          <PaymentBlock>
+            {/* Swish logo inline */}
+            <svg width="90" height="30" viewBox="0 0 90 30" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#F8A01E"/>
+                  <stop offset="50%" stopColor="#E9417A"/>
+                  <stop offset="100%" stopColor="#8B45B6"/>
+                </linearGradient>
+              </defs>
+              <path d="M15 4 C8 4 4 9 4 15 C4 21 8 26 15 26 C18 26 20.5 25 22.5 23.2 C20 21.5 18.5 19 18.5 16 C18.5 12 21 9.5 24 9.5 C25 9.5 26 9.8 26.8 10.3 C25.2 6.7 20.5 4 15 4Z" fill="url(#sg)"/>
+              <path d="M24 9.5 C21 9.5 18.5 12 18.5 16 C18.5 19 20 21.5 22.5 23.2 C24.2 21.8 26 19 26 15.5 C26 13 25.2 11 24 9.5Z" fill="url(#sg)" opacity="0.7"/>
+              <text x="32" y="20" fontFamily="system-ui, -apple-system, sans-serif" fontSize="15" fontWeight="700" fill={T.isDark ? '#fff' : '#1a1a1a'}>swish</text>
+              <text x="75" y="14" fontFamily="system-ui" fontSize="8" fill={T.isDark ? '#aaa' : '#888'}>®</text>
+            </svg>
+            <a
+              href="https://app.swish.nu/1/p/sw/?sw=1236433940&msg=&src=qr"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: 22, fontWeight: 800, color: T.accent,
+                textDecoration: 'underline', letterSpacing: '1px',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              123 643 39 40
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </PaymentBlock>
+
+          {divider}
+
+          {/* Bankgirot */}
+          <PaymentBlock>
+            {/* Bankgirot logo inline */}
+            <svg width="120" height="28" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="4" width="22" height="20" rx="3" fill="#C8102E"/>
+              <text x="5" y="19" fontFamily="serif" fontSize="13" fontWeight="900" fill="white">bg</text>
+              <text x="30" y="19" fontFamily="system-ui, -apple-system, sans-serif" fontSize="14" fontWeight="700" fill={T.isDark ? '#fff' : '#1a1a1a'}>bankgirot</text>
+            </svg>
+            <span style={{ fontSize: 22, fontWeight: 800, color: T.text, letterSpacing: '1px' }}>
+              5323-2344
+            </span>
+          </PaymentBlock>
+        </div>
+
+        {/* Månadsgivare CTA */}
+        <div style={{ padding: '0 16px' }}>
+          <button
+            onClick={() => window.open('https://islam.nu/stod-oss/', '_blank')}
+            style={{
+              width: '100%', padding: '16px', borderRadius: 14,
+              background: T.accent, color: '#fff',
+              fontSize: 16, fontWeight: 700, border: 'none', cursor: 'pointer',
+              WebkitTapHighlightColor: 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            Eller bli månadsgivare
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </button>
+          <p style={{ textAlign: 'center', fontSize: 12, color: T.textMuted, marginTop: 10 }}>Öppnas i din webbläsare</p>
+        </div>
+      </div>
     </div>
   );
 }
