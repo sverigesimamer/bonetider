@@ -242,7 +242,7 @@ function CalendarView({bookings,onSelectSlot,isAdmin,T}){
   const [anchor,setAnchor]=useState(today);
   const [selectedDate,setSelectedDate]=useState(null);
   const [showSlots,setShowSlots]=useState(false);
-  const [durationHours,setDurationHours]=useState(2);
+  const [durationHours,setDurationHours]=useState(1);
   const weekDays=useMemo(()=>getWeekDays(anchor),[anchor]);
   const monthGrid=useMemo(()=>getMonthGrid(anchor.getFullYear(),anchor.getMonth()),[anchor]);
   const navPrev=()=>{const d=new Date(anchor);viewMode==='week'?d.setDate(d.getDate()-7):d.setMonth(d.getMonth()-1);setAnchor(d);};
