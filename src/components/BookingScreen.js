@@ -18,12 +18,16 @@ const STORAGE_DEVICE = 'islamnu_device_id';
 
 const OPEN_HOUR  = 8;
 const CLOSE_HOUR = 24;
-const ALL_HOURS  = Array.from({length: CLOSE_HOUR - OPEN_HOUR}, (_, i) => OPEN_HOUR + i);
+// Halvtimmes-steg: 8, 8.5, 9, 9.5 ... 23.5
+const ALL_HOURS = Array.from({length:(CLOSE_HOUR-OPEN_HOUR)*2},(_,i)=>OPEN_HOUR+i*0.5);
+function parseSlotStart(timeSlot){ const s=timeSlot.split('–')[0]; const[hh,mm]=s.split(':').map(Number); return hh+(mm===30?0.5:0); }
 
 const DAYS_SV   = ['Mån','Tis','Ons','Tor','Fre','Lör','Sön'];
 const MONTHS_SV = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
 
-const DURATION_OPTIONS   = [1,2,3,4,5,6,7,8,9,10,11,12];
+// Halvtimmes-steg från 1h till 12h
+const DURATION_OPTIONS = [1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12];
+function fmtDuration(h){ return h%1===0?`${h} tim`:`${Math.floor(h)} tim 30 min`; }
 const RECUR_OPTIONS      = [
   { value:'none',    label:'Ingen upprepning' },
   { value:'weekly',  label:'Veckovis' },
@@ -35,7 +39,7 @@ function toISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(
 function parseISO(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
 function isoToDisplay(s){ const d=parseISO(s); return `${d.getDate()} ${MONTHS_SV[d.getMonth()]} ${d.getFullYear()}`; }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function fmtHour(h){ return h===24?'00:00':`${String(h).padStart(2,'0')}:00`; }
+function fmtHour(h){ return h===24?'00:00':`${String(Math.floor(h)).padStart(2,'0')}:${h%1===0?'00':'30'}`; }
 function slotLabel(startHour,dur){ return `${fmtHour(startHour)}–${fmtHour(startHour+dur)}`; }
 
 function getWeekDays(anchor){
@@ -50,18 +54,30 @@ function getMonthGrid(year,month){
   while(cells.length%7!==0) cells.push(null);
   const rows=[]; for(let i=0;i<cells.length;i+=7) rows.push(cells.slice(i,i+7)); return rows;
 }
+// Arbetar i 30-minutersblock (1 block = 0.5h)
 function getBookedHours(bookings,iso,excludeId=null){
   const active=bookings.filter(b=>b.date===iso&&b.status!=='rejected'&&b.status!=='cancelled'&&b.id!==excludeId);
-  const hours=new Set();
-  active.forEach(b=>{ const startH=parseInt(b.time_slot.split('–')[0]); const dur=b.duration_hours||2; for(let i=0;i<dur;i++) hours.add(startH+i); });
-  return hours;
+  const blocks=new Set(); // varje block representerar 30 min, nyckel = startH*2
+  active.forEach(b=>{
+    const parts=b.time_slot.split('–');
+    const parseH=s=>{ const[hh,mm]=s.split(':').map(Number); return hh+(mm===30?0.5:0); };
+    const startH=parseH(parts[0]);
+    const endH=parseH(parts[1]);
+    const dur=b.duration_hours||(endH-startH);
+    for(let i=0;i<dur*2;i++) blocks.add(startH*2+i);
+  });
+  return blocks;
 }
 function getAvailableStarts(bookings,iso,durationHours,excludeId=null){
   const booked=getBookedHours(bookings,iso,excludeId);
   const starts=[];
-  for(let h=OPEN_HOUR;h<=CLOSE_HOUR-durationHours;h++){
+  // Steg 0.5h, från OPEN_HOUR till CLOSE_HOUR-durationHours
+  for(let h=OPEN_HOUR;h<=CLOSE_HOUR-durationHours;h+=0.5){
     if(isHourPast(iso,h,durationHours)) continue;
-    let ok=true; for(let i=0;i<durationHours;i++){ if(booked.has(h+i)){ok=false;break;} } if(ok) starts.push(h);
+    const blocks=durationHours*2;
+    let ok=true;
+    for(let i=0;i<blocks;i++){ if(booked.has(h*2+i)){ok=false;break;} }
+    if(ok) starts.push(h);
   }
   return starts;
 }
@@ -78,11 +94,11 @@ function slotColor(status){ return status==='available'?'#22c55e':status==='pend
 // Dvs klockan måste vara INNAN halv-timmen in i blocket för att det ska vara bokningsbart.
 function isHourPast(iso, startH, durationHours) {
   const todayISO = toISO(new Date());
-  if (iso !== todayISO) return false; // bara relevant för idag
+  if (iso !== todayISO) return false;
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  // Sista bokningsbara minut = startH * 60 + 29 (dvs fram till xx:29)
-  return nowMinutes >= startH * 60 + 30;
+  const startMinutes = Math.floor(startH) * 60 + (startH % 1 === 0 ? 0 : 30);
+  return nowMinutes >= startMinutes + 30;
 }
 
 /* ── UI primitives ── */
@@ -150,13 +166,73 @@ function ConfirmDialog({title,message,confirmLabel,confirmColor='#ef4444',onConf
   </div>;
 }
 
-function DurationPicker({value,onChange,T}){
+/* ── iOS-style scroll wheel duration picker ── */
+function DurationPicker({value, onChange, T}) {
+  const ITEM_H = 44;
+  const VISIBLE = 5; // synliga rader
+  const containerH = ITEM_H * VISIBLE;
+  const listRef = React.useRef(null);
+  const isDragging = React.useRef(false);
+  const startY = React.useRef(0);
+  const startScrollTop = React.useRef(0);
+  const selectedIdx = DURATION_OPTIONS.indexOf(value) === -1 ? 0 : DURATION_OPTIONS.indexOf(value);
+
+  // Scrolla till valt index vid mount och vid value-ändring utifrån
+  React.useEffect(() => {
+    if (!listRef.current) return;
+    listRef.current.scrollTop = selectedIdx * ITEM_H;
+  }, [selectedIdx]);
+
+  const snapToIndex = React.useCallback((idx) => {
+    const clamped = Math.max(0, Math.min(DURATION_OPTIONS.length - 1, idx));
+    if (listRef.current) listRef.current.scrollTop = clamped * ITEM_H;
+    onChange(DURATION_OPTIONS[clamped]);
+  }, [onChange]);
+
+  const handleScroll = React.useCallback(() => {
+    if (!listRef.current || isDragging.current) return;
+    const idx = Math.round(listRef.current.scrollTop / ITEM_H);
+    onChange(DURATION_OPTIONS[Math.max(0, Math.min(DURATION_OPTIONS.length - 1, idx))]);
+  }, [onChange]);
+
+  // Touch drag
+  const onTouchStart = (e) => { isDragging.current=true; startY.current=e.touches[0].clientY; startScrollTop.current=listRef.current.scrollTop; };
+  const onTouchMove = (e) => { if(!isDragging.current) return; const dy=startY.current-e.touches[0].clientY; listRef.current.scrollTop=startScrollTop.current+dy; };
+  const onTouchEnd = () => { isDragging.current=false; const idx=Math.round(listRef.current.scrollTop/ITEM_H); snapToIndex(idx); };
+
+  // Mouse drag (desktop)
+  const onMouseDown = (e) => { isDragging.current=true; startY.current=e.clientY; startScrollTop.current=listRef.current.scrollTop; };
+  const onMouseMove = (e) => { if(!isDragging.current) return; const dy=startY.current-e.clientY; listRef.current.scrollTop=startScrollTop.current+dy; };
+  const onMouseUp = () => { if(!isDragging.current) return; isDragging.current=false; const idx=Math.round(listRef.current.scrollTop/ITEM_H); snapToIndex(idx); };
+
   return <div style={{display:'flex',flexDirection:'column',gap:8}}>
-    <label style={{fontSize:12,fontWeight:600,color:T.textMuted,fontFamily:'system-ui',letterSpacing:'.3px'}}>ANTAL TIMMAR</label>
-    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-      {DURATION_OPTIONS.map(h=>(
-        <button key={h} onClick={()=>onChange(h)} style={{padding:'8px 0',width:44,borderRadius:10,border:`1.5px solid ${value===h?T.accent:T.border}`,background:value===h?`${T.accent}22`:'none',color:value===h?T.accent:T.text,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent'}}>{h}h</button>
-      ))}
+    <label style={{fontSize:12,fontWeight:600,color:T.textMuted,fontFamily:'system-ui',letterSpacing:'.3px'}}>BOKNINGSLÄNGD</label>
+    <div style={{position:'relative',height:containerH,borderRadius:14,overflow:'hidden',border:`1px solid ${T.border}`,background:T.cardElevated,userSelect:'none',WebkitUserSelect:'none'}}>
+      {/* Övre + nedre fade */}
+      <div style={{position:'absolute',top:0,left:0,right:0,height:ITEM_H*2,background:`linear-gradient(to bottom, ${T.cardElevated}, transparent)`,zIndex:2,pointerEvents:'none'}}/>
+      <div style={{position:'absolute',bottom:0,left:0,right:0,height:ITEM_H*2,background:`linear-gradient(to top, ${T.cardElevated}, transparent)`,zIndex:2,pointerEvents:'none'}}/>
+      {/* Markerings-rad */}
+      <div style={{position:'absolute',top:'50%',left:0,right:0,height:ITEM_H,transform:'translateY(-50%)',background:`${T.accent}18`,borderTop:`1.5px solid ${T.accent}44`,borderBottom:`1.5px solid ${T.accent}44`,zIndex:1,pointerEvents:'none'}}/>
+      {/* Scroll-lista */}
+      <div
+        ref={listRef}
+        className="dur-scroll"
+        onScroll={handleScroll}
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+        onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+        style={{height:'100%',overflowY:'scroll',scrollSnapType:'y mandatory',scrollbarWidth:'none',msOverflowStyle:'none',WebkitOverflowScrolling:'touch',cursor:'grab'}}
+      >
+        <style>{`.dur-scroll::-webkit-scrollbar{display:none}`}</style>
+        {/* Padding top/bottom så första/sista hamnar i mitten */}
+        <div style={{height:ITEM_H*2}}/>
+        {DURATION_OPTIONS.map((h,i)=>{
+          const isSel=h===value;
+          return <div key={h} onClick={()=>snapToIndex(i)} style={{height:ITEM_H,display:'flex',alignItems:'center',justifyContent:'center',scrollSnapAlign:'center',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
+            <span style={{fontSize:isSel?18:15,fontWeight:isSel?800:400,color:isSel?T.accent:T.textMuted,fontFamily:'system-ui',transition:'all .15s',letterSpacing:isSel?'-.3px':'0'}}>{fmtDuration(h)}</span>
+          </div>;
+        })}
+        <div style={{height:ITEM_H*2}}/>
+      </div>
     </div>
   </div>;
 }
@@ -188,19 +264,26 @@ function TimeSlotPanel({bookings,date,isAdmin,durationHours,onSelectSlot,onClose
   const availableStarts=getAvailableStarts(bookings,iso,durationHours);
   const slots=useMemo(()=>{
     const booked=getBookedHours(bookings,iso);
-    return Array.from({length:CLOSE_HOUR-OPEN_HOUR-durationHours+1},(_,i)=>{
-      const startH=OPEN_HOUR+i;
-      let blockFree=true; for(let j=0;j<durationHours;j++){if(booked.has(startH+j)){blockFree=false;break;}}
-      const conflictBooking=bookings.find(b=>{if(b.date!==iso||b.status==='rejected'||b.status==='cancelled') return false; const bStart=parseInt(b.time_slot.split('–')[0]); const bDur=b.duration_hours||2; return startH<bStart+bDur&&startH+durationHours>bStart;});
+    const result=[];
+    for(let startH=OPEN_HOUR;startH<=CLOSE_HOUR-durationHours;startH+=0.5){
+      const blocks=durationHours*2;
+      let blockFree=true; for(let j=0;j<blocks;j++){if(booked.has(startH*2+j)){blockFree=false;break;}}
+      const conflictBooking=bookings.find(b=>{
+        if(b.date!==iso||b.status==='rejected'||b.status==='cancelled') return false;
+        const bStart=parseSlotStart(b.time_slot);
+        const bDur=b.duration_hours||1;
+        return startH<bStart+bDur&&startH+durationHours>bStart;
+      });
       const status=blockFree?'available':conflictBooking?.status==='pending'?'pending':'booked';
-      return {startH,label:slotLabel(startH,durationHours),status,conflictBooking};
-    });
+      result.push({startH,label:slotLabel(startH,durationHours),status,conflictBooking});
+    }
+    return result;
   },[bookings,iso,durationHours]);
 
   return <div style={{marginTop:16,background:T.card,border:`1px solid ${T.border}`,borderRadius:16,overflow:'hidden'}}>
     <div style={{padding:'14px 16px 10px',borderBottom:`1px solid ${T.border}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
       <div>
-        <div style={{fontSize:13,fontWeight:700,color:T.text,fontFamily:'system-ui'}}>Tillgängliga tider · {durationHours}h</div>
+        <div style={{fontSize:13,fontWeight:700,color:T.text,fontFamily:'system-ui'}}>Tillgängliga tider · {fmtDuration(durationHours)}</div>
         <div style={{fontSize:11,color:T.textMuted,fontFamily:'system-ui',marginTop:2}}>{isoToDisplay(iso)}</div>
       </div>
       <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:T.textMuted,padding:4}}>
@@ -300,7 +383,7 @@ function BookingForm({date,slotLabel:slot,durationHours,onSubmit,onBack,loading,
   const recurDates=useMemo(()=>recurrence==='none'?[toISO(date)]:getRecurDates(toISO(date),recurrence,recurCount),[date,recurrence,recurCount]);
   const conflictDates=useMemo(()=>{
     if(recurrence==='none') return [];
-    const startH=parseInt(slot.split('–')[0]);
+    const startH=parseSlotStart(slot);
     return recurDates.filter((iso,idx)=>idx!==0&&!getAvailableStarts(bookings,iso,durationHours).includes(startH));
   },[recurDates,slot,durationHours,bookings,recurrence]);
   const handleSubmit=()=>{
@@ -352,8 +435,8 @@ function EditBookingForm({booking, bookings, onSubmit, onBack, loading, T}){
   const [step,setStep]=useState('date');
   const [anchor,setAnchor]=useState(()=>parseISO(booking.date));
   const [selectedDate,setSelectedDate]=useState(()=>parseISO(booking.date));
-  const [durationHours,setDurationHours]=useState(booking.duration_hours||2);
-  const [selectedStartH,setSelectedStartH]=useState(()=>parseInt(booking.time_slot.split('–')[0]));
+  const [durationHours,setDurationHours]=useState(booking.duration_hours||1);
+  const [selectedStartH,setSelectedStartH]=useState(()=>parseSlotStart(booking.time_slot));
   const [activity,setActivity]=useState(booking.activity);
   const [error,setError]=useState('');
   const monthGrid=useMemo(()=>getMonthGrid(anchor.getFullYear(),anchor.getMonth()),[anchor]);
@@ -405,7 +488,7 @@ function EditBookingForm({booking, bookings, onSubmit, onBack, loading, T}){
       <div style={{display:'flex',flexDirection:'column',gap:6}}>
         {ALL_HOURS.filter(h=>h+durationHours<=CLOSE_HOUR).map(h=>{
           const avail=getAvailableStarts(bookings,toISO(selectedDate),durationHours,booking.id).includes(h);
-          const isCurrent=toISO(selectedDate)===booking.date&&h===parseInt(booking.time_slot.split('–')[0])&&durationHours===(booking.duration_hours||2);
+          const isCurrent=toISO(selectedDate)===booking.date&&h===parseSlotStart(booking.time_slot)&&durationHours===(booking.duration_hours||1);
           return <button key={h} onClick={()=>{if(!avail) return;setSelectedStartH(h);setStep('details');}} style={{padding:'12px 16px',borderRadius:10,border:`1px solid ${isCurrent?T.accent+'66':avail?T.accent+'44':T.border}`,background:isCurrent?`${T.accent}11`:T.cardElevated,color:avail?T.text:T.textMuted,fontSize:14,fontWeight:600,cursor:avail?'pointer':'default',opacity:avail?1:0.4,textAlign:'left',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent'}}>
             {slotLabel(h,durationHours)}
             {isCurrent&&<span style={{float:'right',fontSize:10,color:T.accent,fontWeight:700}}>Nuvarande</span>}
@@ -449,7 +532,7 @@ function ConfirmationScreen({booking,onBack,T}){
           <div style={{fontSize:13,fontWeight:700,color:T.textMuted,letterSpacing:'.5px'}}>BOKNINGSBEKRÄFTELSE</div>
           <Badge status="approved"/>
         </div>
-        {[['Namn',booking.name],['Datum',isoToDisplay(booking.date)],['Tid',booking.time_slot],['Längd',`${booking.duration_hours||2} timmar`],['Aktivitet',booking.activity],['Boknings-ID',booking.id.toUpperCase()]].map(([l,v])=>(
+        {[['Namn',booking.name],['Datum',isoToDisplay(booking.date)],['Tid',booking.time_slot],['Längd',`${booking.duration_hours||1} timmar`],['Aktivitet',booking.activity],['Boknings-ID',booking.id.toUpperCase()]].map(([l,v])=>(
           <div key={l} style={{marginBottom:10}}>
             <div style={{fontSize:10,fontWeight:700,color:T.textMuted,letterSpacing:'.5px',marginBottom:2}}>{l.toUpperCase()}</div>
             <div style={{fontSize:14,fontWeight:600,color:T.text}}>{v}</div>
@@ -543,7 +626,7 @@ function MyBookings({bookings, onViewConfirmation, onEdit, onCancel, onBack, T})
               <div style={{fontSize:14,fontWeight:700,color:T.text}}>{b.time_slot}</div>
               <Badge status={b.status}/>
             </div>
-            <div style={{fontSize:12,color:T.textMuted,marginBottom:2}}>{isoToDisplay(b.date)} · {b.duration_hours||2}h</div>
+            <div style={{fontSize:12,color:T.textMuted,marginBottom:2}}>{isoToDisplay(b.date)} · {b.duration_hours||1}h</div>
             <div style={{fontSize:12,color:T.textMuted,marginBottom:4}}>{b.activity}</div>
             <StatusInfo b={b}/>
             {isApproved&&<div onClick={()=>onViewConfirmation(b)} style={{marginTop:8,fontSize:12,color:T.accent,fontWeight:600,display:'flex',alignItems:'center',gap:4,cursor:'pointer'}}>Visa bekräftelse <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>}
@@ -616,7 +699,7 @@ function AdminAddRecurring({onSubmit,onBack,bookings,T}){
     {step==='time'&&selectedDate&&<>
       <div style={{fontSize:12,fontWeight:700,color:T.textMuted,marginBottom:12,letterSpacing:'.3px'}}>2. VÄLJ TID — {isoToDisplay(toISO(selectedDate))} · {durationHours}h</div>
       {getAvailableStarts(bookings,toISO(selectedDate),durationHours).length===0
-        ?<div style={{color:T.textMuted,fontSize:13,padding:'20px 0',textAlign:'center'}}>Inga lediga tider för {durationHours}h. <button onClick={()=>setStep('date')} style={{background:'none',border:'none',color:T.accent,cursor:'pointer',fontWeight:700}}>Byt datum</button></div>
+        ?<div style={{color:T.textMuted,fontSize:13,padding:'20px 0',textAlign:'center'}}>Inga lediga tider för {fmtDuration(durationHours)}. <button onClick={()=>setStep('date')} style={{background:'none',border:'none',color:T.accent,cursor:'pointer',fontWeight:700}}>Byt datum</button></div>
         :<div style={{display:'flex',flexDirection:'column',gap:6}}>
           {ALL_HOURS.filter(h=>h+durationHours<=CLOSE_HOUR).map(h=>{const avail=getAvailableStarts(bookings,toISO(selectedDate),durationHours).includes(h);return <button key={h} onClick={()=>{if(avail){setSelectedStartH(h);setStep('details');}}} style={{padding:'12px 16px',borderRadius:10,border:`1px solid ${avail?T.accent+'44':T.border}`,background:T.cardElevated,color:avail?T.text:T.textMuted,fontSize:14,fontWeight:600,cursor:avail?'pointer':'default',opacity:avail?1:0.4,textAlign:'left',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent'}}>
             {slotLabel(h,durationHours)}{avail&&<span style={{float:'right',fontSize:11,color:T.accent,fontWeight:700}}>Välj →</span>}
@@ -654,8 +737,8 @@ function AdminEditForm({booking, bookings, onSubmit, onBack, loading, T}){
   const [step,setStep]=useState('date');
   const [anchor,setAnchor]=useState(()=>parseISO(booking.date));
   const [selectedDate,setSelectedDate]=useState(()=>parseISO(booking.date));
-  const [durationHours,setDurationHours]=useState(booking.duration_hours||2);
-  const [selectedStartH,setSelectedStartH]=useState(()=>parseInt(booking.time_slot.split('–')[0]));
+  const [durationHours,setDurationHours]=useState(booking.duration_hours||1);
+  const [selectedStartH,setSelectedStartH]=useState(()=>parseSlotStart(booking.time_slot));
   const [activity,setActivity]=useState(booking.activity);
   const [adminComment,setAdminComment]=useState('');
   const [error,setError]=useState('');
@@ -696,7 +779,7 @@ function AdminEditForm({booking, bookings, onSubmit, onBack, loading, T}){
       <div style={{display:'flex',flexDirection:'column',gap:6}}>
         {ALL_HOURS.filter(h=>h+durationHours<=CLOSE_HOUR).map(h=>{
           const avail=getAvailableStarts(bookings,toISO(selectedDate),durationHours,booking.id).includes(h);
-          const isCurrent=toISO(selectedDate)===booking.date&&h===parseInt(booking.time_slot.split('–')[0])&&durationHours===(booking.duration_hours||2);
+          const isCurrent=toISO(selectedDate)===booking.date&&h===parseSlotStart(booking.time_slot)&&durationHours===(booking.duration_hours||1);
           return <button key={h} onClick={()=>{if(!avail) return;setSelectedStartH(h);setStep('details');}} style={{padding:'12px 16px',borderRadius:10,border:`1px solid ${isCurrent?T.accent+'66':avail?T.accent+'44':T.border}`,background:isCurrent?`${T.accent}11`:T.cardElevated,color:avail?T.text:T.textMuted,fontSize:14,fontWeight:600,cursor:avail?'pointer':'default',opacity:avail?1:0.4,textAlign:'left',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent'}}>
             {slotLabel(h,durationHours)}
             {isCurrent&&<span style={{float:'right',fontSize:10,color:T.accent,fontWeight:700}}>Nuvarande</span>}
@@ -761,7 +844,7 @@ function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,act
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
         <Badge status={selected.status}/><span style={{fontSize:10,color:T.textMuted}}>ID: {selected.id.toUpperCase()}</span>
       </div>
-      {[['Namn',selected.name],['Telefon',selected.phone],['E-post',selected.email],['Datum',isoToDisplay(selected.date)],['Tid',selected.time_slot],['Längd',`${selected.duration_hours||2} timmar`],['Aktivitet',selected.activity]].map(([l,v])=>(
+      {[['Namn',selected.name],['Telefon',selected.phone],['E-post',selected.email],['Datum',isoToDisplay(selected.date)],['Tid',selected.time_slot],['Längd',`${selected.duration_hours||1} timmar`],['Aktivitet',selected.activity]].map(([l,v])=>(
         <div key={l} style={{marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${T.border}`}}>
           <div style={{fontSize:10,fontWeight:700,color:T.textMuted,letterSpacing:'.5px',marginBottom:2}}>{l.toUpperCase()}</div>
           <div style={{fontSize:14,color:T.text}}>{v}</div>
@@ -840,7 +923,7 @@ function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,act
             </div>
             <Badge status={b.status}/>
           </div>
-          <div style={{fontSize:12,color:T.textMuted,marginBottom:2}}>{isoToDisplay(b.date)} · {b.time_slot} · {b.duration_hours||2}h</div>
+          <div style={{fontSize:12,color:T.textMuted,marginBottom:2}}>{isoToDisplay(b.date)} · {b.time_slot} · {b.duration_hours||1}h</div>
           <div style={{fontSize:12,color:T.textMuted}}>{b.activity}</div>
         </div>)}
       </div>
@@ -873,14 +956,14 @@ function AdminLogin({onSuccess,onBack,T}){
 }
 
 /* ── Root ── */
-export default function BookingScreen({onBack, activateForDevice}){
+export default function BookingScreen({onBack, activateForDevice, registerAdminDevice, startAtAdminLogin}){
   const {theme:T}=useTheme();
   const [bookings,setBookings]=useState([]);
   const [dbLoading,setDbLoading]=useState(true);
   const [submitLoading,setSubmitLoading]=useState(false);
   const [actionLoading,setActionLoading]=useState(false);
   const [adminMode,setAdminModeState]=useState(()=>localStorage.getItem(STORAGE_ADMIN)==='true');
-  const [view,setView]=useState('calendar');
+  const [view,setView]=useState(()=>startAtAdminLogin?'admin-login':'calendar');
   const [pendingSlot,setPendingSlot]=useState(null);
   const [viewConfirmation,setViewConfirmation]=useState(null);
   const [editingBooking,setEditingBooking]=useState(null);
@@ -1042,7 +1125,13 @@ export default function BookingScreen({onBack, activateForDevice}){
     showToast(`${rows.length} återkommande bokningar tillagda ✓`);
   },[showToast]);
 
-  const handleAdminLogin=useCallback(()=>{localStorage.setItem(STORAGE_ADMIN,'true');setAdminModeState(true);setView('admin');showToast('Välkommen, admin');},[showToast]);
+  const handleAdminLogin=useCallback(()=>{
+    localStorage.setItem(STORAGE_ADMIN,'true');
+    setAdminModeState(true);
+    setView('admin');
+    showToast('Välkommen, admin');
+    registerAdminDevice?.();
+  },[showToast, registerAdminDevice]);
   const handleAdminLogout=useCallback(()=>{localStorage.setItem(STORAGE_ADMIN,'false');setAdminModeState(false);setView('calendar');showToast('Utloggad');},[showToast]);
   const handleSelectSlot=useCallback((date,slotLbl,startH,durationHours,existingBooking)=>{
     if(adminMode&&existingBooking){setView('admin');return;}

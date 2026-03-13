@@ -125,14 +125,23 @@ function Shell() {
     try { sessionStorage.setItem('activeTab', id); } catch {}
   };
 
+  const [moreInitialView, setMoreInitialView] = useState(null);
+
+  const handleGoToAdminLogin = () => {
+    setMoreInitialView('booking-admin-login');
+    setMoreResetKey(n => n + 1);
+    setTab('more');
+    try { sessionStorage.setItem('activeTab', 'more'); } catch {}
+  };
+
   const renderScreen = () => {
     if (tab === 'prayer' && showMonthly) return <MonthlyScreen onBack={() => setShowMonthly(false)} />;
     switch (tab) {
-      case 'home':     return <NewHomeScreen stream={stream} />;
+      case 'home':     return <NewHomeScreen stream={stream} onGoToAdminLogin={handleGoToAdminLogin} />;
       case 'prayer':   return <PrayerScreen onMonthlyPress={() => setShowMonthly(true)} />;
       case 'qibla':    return <QiblaScreen />;
-      case 'dhikr':   return <DhikrScreen />;
-      case 'more':     return <MoreScreen key={moreResetKey} onTabBarHide={() => setTabBarVisible(false)} onTabBarShow={() => setTabBarVisible(true)} />;
+      case 'dhikr':    return <DhikrScreen />;
+      case 'more':     return <MoreScreen key={moreResetKey} onTabBarHide={() => setTabBarVisible(false)} onTabBarShow={() => setTabBarVisible(true)} initialView={moreInitialView} />;
       default:         return <NewHomeScreen />;
     }
   };

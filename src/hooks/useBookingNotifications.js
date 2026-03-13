@@ -1,20 +1,19 @@
 /**
  * useBookingNotifications.js
  *
- * Smart aktivering — polling och Realtime körs BARA för:
- *   - Enheter som faktiskt har en bokning i systemet (kontrolleras via Supabase en gång,
- *     resultatet cachas i localStorage så nästa app-start är omedelbar)
- *   - Admin-användare (alltid aktiv)
+ * Tre typer av notiser:
  *
- * Vanliga besökare som aldrig bokat: noll anrop görs efter den initiala engångskontroll
- * som returnerar count=0 och cachen sätts till 'false'.
+ * 1. BESÖKAR-NOTISER — egna bokningar som fått svar (approved/rejected/cancelled/edited)
+ *    Aktiveras bara om enheten har en bokning i systemet.
  *
- * När en bokning skapas anropas activateForDevice() från BookingScreen
- * vilket sätter cachen till 'true' direkt — ingen fördröjning.
+ * 2. ADMIN-NOTISER (inloggad) — pending/edit_pending bokningar som behöver hanteras.
+ *    Aktiveras om localStorage har admin-flagga.
  *
- * Datahämtning är också begränsad:
- *   - Besökare: .eq('device_id', deviceId) — bara egna rader
- *   - Admin: separat count-query på pending/edit_pending
+ * 3. ADMIN-DEVICE PENDING — enheten är registrerad i admin_devices (loggat in förut)
+ *    men är inte inloggad just nu. Visar: "Nya bokningar behöver åtgärdas — gå till admin".
+ *    Försvinner om användaren klickar "Ej admin" (sätter dismissed_at i admin_devices).
+ *
+ * Polling: 30s + Supabase Realtime. Körs bara för enheter som är relevanta.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -24,20 +23,22 @@ const STORAGE_DEVICE       = 'islamnu_device_id';
 const STORAGE_ADMIN        = 'islamnu_admin_mode';
 const STORAGE_VISITOR_SEEN = 'islamnu_bookings_visitor_seen';
 const STORAGE_ADMIN_SEEN   = 'islamnu_bookings_admin_seen';
-const STORAGE_HAS_BOOKING  = 'islamnu_has_booking'; // 'true' | 'false' | unset
+const STORAGE_HAS_BOOKING  = 'islamnu_has_booking';
 const POLL_INTERVAL_MS     = 30_000;
 
 export function useBookingNotifications() {
-  const [visitorUnread, setVisitorUnread] = useState(0);
-  const [adminUnread,   setAdminUnread]   = useState(0);
-  const [bellNotifs,    setBellNotifs]    = useState([]);
-  const [active,        setActive]        = useState(false);
+  const [visitorUnread,     setVisitorUnread]     = useState(0);
+  const [adminUnread,       setAdminUnread]       = useState(0);
+  const [bellNotifs,        setBellNotifs]        = useState([]);
+  const [adminPendingNotif, setAdminPendingNotif] = useState(null); // notis för admin-device ej inloggad
+  const [active,            setActive]            = useState(false);
 
   const deviceId = localStorage.getItem(STORAGE_DEVICE);
   const isAdmin  = localStorage.getItem(STORAGE_ADMIN) === 'true';
 
-  // Huvud-beräkning — hämtar bara relevanta rader
+  // ── Huvud-beräkning ──
   const calculate = useCallback(async () => {
+    // 1. Besökar-notiser — bara egna rader
     if (deviceId) {
       const seenAt = parseInt(localStorage.getItem(STORAGE_VISITOR_SEEN) || '0', 10);
       const { data } = await supabase
@@ -50,6 +51,7 @@ export function useBookingNotifications() {
         setVisitorUnread(data.length);
         setBellNotifs(data.map(b => ({
           id: b.id,
+          type: 'booking',
           status: b.status,
           date: b.date,
           time_slot: b.time_slot,
@@ -58,6 +60,7 @@ export function useBookingNotifications() {
       }
     }
 
+    // 2. Admin inloggad — pending-räknare
     if (isAdmin) {
       const adminSeenAt = parseInt(localStorage.getItem(STORAGE_ADMIN_SEEN) || '0', 10);
       const { data } = await supabase
@@ -67,31 +70,65 @@ export function useBookingNotifications() {
         .gt('created_at', adminSeenAt);
       if (data) setAdminUnread(data.length);
     }
+
+    // 3. Admin-device ej inloggad — kolla om enheten är registrerad och ej dismissed
+    if (deviceId && !isAdmin) {
+      const { data: adminDevice } = await supabase
+        .from('admin_devices')
+        .select('device_id, dismissed_at')
+        .eq('device_id', deviceId)
+        .maybeSingle();
+
+      if (adminDevice && !adminDevice.dismissed_at) {
+        // Finns det pending bokningar?
+        const { count } = await supabase
+          .from('bookings')
+          .select('id', { count: 'exact', head: true })
+          .in('status', ['pending', 'edit_pending']);
+        if ((count ?? 0) > 0) {
+          setAdminPendingNotif({ count, deviceId });
+        } else {
+          setAdminPendingNotif(null);
+        }
+      } else {
+        setAdminPendingNotif(null);
+      }
+    }
   }, [deviceId, isAdmin]);
 
-  // Steg 1: avgör om polling ska aktiveras
+  // ── Steg 1: avgör om polling ska aktiveras ──
   useEffect(() => {
+    // Admin eller admin-device → alltid aktiv
     if (isAdmin) { setActive(true); return; }
     if (!deviceId) return;
 
-    const cached = localStorage.getItem(STORAGE_HAS_BOOKING);
-    if (cached === 'true')  { setActive(true);  return; }
-    if (cached === 'false') { return; } // ingen bokning — gör inget mer
-
-    // Ingen cache ännu — en engångskontroll
+    // Kolla om enheten är admin-device (oavsett om den har bokning)
     supabase
-      .from('bookings')
-      .select('id', { count: 'exact', head: true })
+      .from('admin_devices')
+      .select('device_id, dismissed_at')
       .eq('device_id', deviceId)
-      .then(({ count }) => {
-        const has = (count ?? 0) > 0;
-        localStorage.setItem(STORAGE_HAS_BOOKING, has ? 'true' : 'false');
-        if (has) setActive(true);
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && !data.dismissed_at) { setActive(true); return; }
+        // Annars — kolla om enheten har en bokning
+        const cached = localStorage.getItem(STORAGE_HAS_BOOKING);
+        if (cached === 'true') { setActive(true); return; }
+        if (cached === 'false') return;
+        supabase
+          .from('bookings')
+          .select('id', { count: 'exact', head: true })
+          .eq('device_id', deviceId)
+          .then(({ count }) => {
+            const has = (count ?? 0) > 0;
+            localStorage.setItem(STORAGE_HAS_BOOKING, has ? 'true' : 'false');
+            if (has) setActive(true);
+          })
+          .catch(() => {});
       })
       .catch(() => {});
   }, [deviceId, isAdmin]);
 
-  // Steg 2: starta Realtime + polling bara när active är true
+  // ── Steg 2: starta Realtime + polling bara när active är true ──
   useEffect(() => {
     if (!active) return;
 
@@ -100,6 +137,7 @@ export function useBookingNotifications() {
     const channel = supabase
       .channel('booking-notif-rt')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, calculate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_devices' }, calculate)
       .subscribe();
 
     const poll = setInterval(calculate, POLL_INTERVAL_MS);
@@ -110,11 +148,31 @@ export function useBookingNotifications() {
     };
   }, [active, calculate]);
 
-  // Anropas från BookingScreen direkt när besökaren skapar sin första bokning
+  // ── Anropas när besökaren skapar sin första bokning ──
   const activateForDevice = useCallback(() => {
     localStorage.setItem(STORAGE_HAS_BOOKING, 'true');
     setActive(true);
   }, []);
+
+  // ── Anropas när admin loggar in — registrerar enheten ──
+  const registerAdminDevice = useCallback(async () => {
+    if (!deviceId) return;
+    await supabase
+      .from('admin_devices')
+      .upsert({ device_id: deviceId, created_at: Date.now(), dismissed_at: null },
+               { onConflict: 'device_id' });
+    setActive(true);
+  }, [deviceId]);
+
+  // ── Anropas när "Ej admin" klickas — sätter dismissed_at ──
+  const dismissAdminDevice = useCallback(async () => {
+    if (!deviceId) return;
+    await supabase
+      .from('admin_devices')
+      .update({ dismissed_at: Date.now() })
+      .eq('device_id', deviceId);
+    setAdminPendingNotif(null);
+  }, [deviceId]);
 
   const markVisitorSeen = useCallback(() => {
     localStorage.setItem(STORAGE_VISITOR_SEEN, Date.now().toString());
@@ -127,14 +185,17 @@ export function useBookingNotifications() {
     setAdminUnread(0);
   }, []);
 
-  const totalUnread = (deviceId ? visitorUnread : 0) + (isAdmin ? adminUnread : 0);
+  const totalUnread = (deviceId ? visitorUnread : 0) + (isAdmin ? adminUnread : 0) + (adminPendingNotif ? 1 : 0);
 
   return {
     visitorUnread,
     adminUnread,
+    adminPendingNotif,  // { count, deviceId } | null
     totalUnread,
     bellNotifs,
     activateForDevice,
+    registerAdminDevice,
+    dismissAdminDevice,
     markVisitorSeen,
     markAdminSeen,
   };
