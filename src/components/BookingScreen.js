@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabaseClient';
 
-const ADMIN_PIN     = '1234';
+const ADMIN_PIN     = 'Andalus2026';
 const STORAGE_ADMIN = 'islamnu_admin_mode';
 
 const TIME_SLOTS = ['08:00–10:00','10:00–12:00','12:00–14:00','14:00–16:00','16:00–18:00','18:00–20:00'];
