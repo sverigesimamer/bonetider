@@ -165,62 +165,11 @@ export default function HomeScreen({ onMonthlyPress }) {
   }, [dispatch]);
 
   useEffect(() => {
-    if (location) loadPrayers(location, settings.calculationMethod, settings.school);
+    if (location) {
+      lastFetchRef.current = null; // clear cache so new location always triggers fresh fetch
+      loadPrayers(location, settings.calculationMethod, settings.school);
+    }
   }, [location, settings.calculationMethod, settings.school, loadPrayers]);
-
-  // ── GPS — smart cache strategy ───────────────────────────────────────────
-  // 1. On open: use cached location instantly (already in AppContext from localStorage)
-  // 2. First background check: waits 10s then runs, updates only if moved >5km
-  // 3. Repeat check: every 30 minutes, silent, same 5km threshold
-  // No watchPosition — GPS never runs continuously
-
-  const GPS_INTERVAL_MS  = 30 * 60 * 1000; // 30 minutes
-  const GPS_STARTUP_MS   = 10 * 1000;       // 10 second delay on start
-  const GPS_CACHE_KEY    = 'gps-last-check';
-  const GPS_MOVE_THRESH  = 0.045;           // ~5km in degrees
-
-  const runGpsCheck = useCallback(() => {
-    if (!navigator.geolocation || !settings.autoLocation) return;
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        if (location) {
-          const dlat = Math.abs(latitude  - location.latitude);
-          const dlng = Math.abs(longitude - location.longitude);
-          if (dlat < GPS_MOVE_THRESH && dlng < GPS_MOVE_THRESH) {
-            localStorage.setItem(GPS_CACHE_KEY, Date.now().toString());
-            return;
-          }
-        }
-        try {
-          const geo = await reverseGeocode(latitude, longitude);
-          dispatch({ type: 'SET_LOCATION', payload: { latitude, longitude, ...geo } });
-          localStorage.setItem(GPS_CACHE_KEY, Date.now().toString());
-        } catch { /* silent */ }
-      },
-      () => { /* silent fail — keep existing location */ },
-      { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
-    );
-  }, [settings.autoLocation, location, dispatch]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    // App.js GPS prompt handles the first-time case (no location).
-    // HomeScreen only manages background refresh for existing locations.
-    if (!settings.autoLocation || !location) return;
-
-    const lastCheck = parseInt(localStorage.getItem(GPS_CACHE_KEY) || '0', 10);
-    const elapsed   = Date.now() - lastCheck;
-    const delay     = elapsed >= GPS_INTERVAL_MS ? GPS_STARTUP_MS : GPS_INTERVAL_MS - elapsed;
-
-    const startupTimer = setTimeout(() => {
-      runGpsCheck();
-      const intervalId = setInterval(runGpsCheck, GPS_INTERVAL_MS);
-      return () => clearInterval(intervalId);
-    }, delay);
-
-    return () => clearTimeout(startupTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.autoLocation]);
 
   // ── Manual location tap ───────────────────────────────────────────────────
   const detectLocation = () => {
