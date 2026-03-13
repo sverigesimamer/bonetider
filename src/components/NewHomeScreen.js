@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useBanner } from '../hooks/useBanner';
+import { useBookingNotifications } from '../hooks/useBookingNotifications';
 import SvgIcon from './SvgIcon';
 import IslamNuLogoTeal from '../icons/islamnu-logga-light.svg';
 
@@ -154,11 +155,42 @@ function YoutubeCard({ stream, T }) {
   );
 }
 
+/* ── Booking notification label helpers ── */
+function bookingNotifText(n) {
+  const statusLabel = {
+    approved:  'Din bokning har godkänts',
+    rejected:  'Din bokning avböjdes',
+    cancelled: 'Din bokning ställdes in',
+    edited:    'Din bokning ändrades av admin',
+  };
+  const base = statusLabel[n.status] || 'Uppdatering på din bokning';
+  return `${base} — ${n.date ? n.date.split('-').reverse().join('/') : ''} · ${n.time_slot || ''}`;
+}
+function bookingNotifColor(status) {
+  return status==='approved'?'#22c55e':status==='rejected'?'#ef4444':status==='edited'?'#3b82f6':'#64748b';
+}
+
 /* ── Main screen ────────────────────────────────────────────── */
 export default function NewHomeScreen({ stream }) {
   const { theme: T } = useTheme();
   const { allBanners, banners, unreadCount, read, dismiss, markRead, markAllRead } = useBanner();
+  const { bellNotifs, visitorUnread, markVisitorSeen } = useBookingNotifications();
   const [showBellPanel, setShowBellPanel] = useState(false);
+
+  const totalUnread = unreadCount + visitorUnread;
+
+  const handleBellOpen = (e) => {
+    e.stopPropagation();
+    setShowBellPanel(v => !v);
+    allBanners.forEach(b => markRead(b.id));
+    if (visitorUnread > 0) markVisitorSeen();
+  };
+
+  // Alla rader i panelen: bokningsnotiser (överst) + banners
+  const allItems = [
+    ...bellNotifs.map(n => ({ type: 'booking', ...n })),
+    ...allBanners.map(b => ({ type: 'banner', ...b })),
+  ];
 
   return (
     <div
@@ -188,26 +220,23 @@ export default function NewHomeScreen({ stream }) {
         {/* Bell */}
         <div style={{ position: 'relative' }}>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowBellPanel(v => !v);
-              allBanners.forEach(b => markRead(b.id));
-            }}
+            onClick={handleBellOpen}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, WebkitTapHighlightColor: 'transparent' }}
           >
             <div style={{ position: 'relative', display: 'inline-flex' }}>
-              <SvgIcon name="bell" size={24} color={unreadCount > 0 ? T.accent : T.textMuted}
-                style={{ opacity: unreadCount > 0 ? 1 : 0.5, transition: 'color .2s, opacity .2s' }} />
-              {unreadCount > 0 && (
+              <SvgIcon name="bell" size={24} color={totalUnread > 0 ? T.accent : T.textMuted}
+                style={{ opacity: totalUnread > 0 ? 1 : 0.5, transition: 'color .2s, opacity .2s' }} />
+              {totalUnread > 0 && (
                 <div style={{
                   position: 'absolute', top: -4, right: -4,
-                  width: 17, height: 17, borderRadius: 9,
+                  minWidth: 17, height: 17, borderRadius: 9,
                   background: '#FF3B30', border: `2px solid ${T.bg}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 3px', boxSizing: 'border-box',
                   animation: 'fadeUp .2s ease',
                 }}>
                   <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                    {totalUnread > 9 ? '9+' : totalUnread}
                   </span>
                 </div>
               )}
@@ -222,37 +251,69 @@ export default function NewHomeScreen({ stream }) {
               borderRadius: 16, zIndex: 500,
               boxShadow: `0 8px 32px rgba(0,0,0,${T.isDark ? '0.5' : '0.12'})`,
               overflow: 'hidden', animation: 'fadeUp .2s ease both',
+              maxHeight: '70vh', overflowY: 'auto',
             }}>
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '12px 14px 10px', borderBottom: `1px solid ${T.border}`,
+                position: 'sticky', top: 0, background: T.card, zIndex: 1,
               }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Meddelanden</span>
-                {allBanners.length > 0 && (
-                  <button onClick={() => { markAllRead(); setShowBellPanel(false); }}
+                {allItems.length > 0 && (
+                  <button onClick={() => { markAllRead(); markVisitorSeen(); setShowBellPanel(false); }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: T.accent, padding: '2px 0' }}>
                     Markera alla lästa
                   </button>
                 )}
               </div>
-              {allBanners.length === 0 ? (
+
+              {allItems.length === 0 ? (
                 <div style={{ padding: '20px 14px', fontSize: 13, color: T.textMuted, textAlign: 'center' }}>Inga meddelanden</div>
-              ) : allBanners.map(b => {
-                const isRead = read.includes(b.id);
+              ) : allItems.map((item, i) => {
+                if (item.type === 'booking') {
+                  const color = bookingNotifColor(item.status);
+                  return (
+                    <div key={`booking-${item.id}`} style={{
+                      padding: '11px 14px', borderBottom: `1px solid ${T.border}`,
+                      background: T.isDark ? `${color}09` : `${color}07`,
+                      display: 'flex', alignItems: 'flex-start', gap: 10,
+                    }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                        background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          {item.status==='approved'?<polyline points="20 6 9 17 4 12"/>
+                          :item.status==='rejected'||item.status==='cancelled'?<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
+                          :<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>}
+                        </svg>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color, marginBottom: 2 }}>Bokningsuppdatering</div>
+                        <div style={{ fontSize: 13, color: T.text, lineHeight: 1.45 }}>{bookingNotifText(item)}</div>
+                        {item.admin_comment && (
+                          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3, fontStyle: 'italic' }}>"{item.admin_comment}"</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+                // Banner
+                const isRead = read.includes(item.id);
                 return (
-                  <div key={b.id} style={{
+                  <div key={`banner-${item.id}`} style={{
                     padding: '11px 14px', borderBottom: `1px solid ${T.border}`,
                     background: isRead ? 'transparent' : T.isDark ? 'rgba(45,139,120,0.06)' : 'rgba(36,100,93,0.05)',
                     display: 'flex', alignItems: 'flex-start', gap: 10, textAlign: 'left',
                   }}>
                     <div style={{ width: 7, height: 7, borderRadius: 4, flexShrink: 0, marginTop: 5, background: isRead ? 'transparent' : T.accent }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: T.textSecondary, lineHeight: 1.5 }}>{b.message}</div>
-                      {b.linkText && b.linkUrl && (
-                        <a href={b.linkUrl} target="_blank" rel="noopener noreferrer" style={{
+                      <div style={{ fontSize: 13, color: T.textSecondary, lineHeight: 1.5 }}>{item.message}</div>
+                      {item.linkText && item.linkUrl && (
+                        <a href={item.linkUrl} target="_blank" rel="noopener noreferrer" style={{
                           display: 'inline-block', marginTop: 5, fontSize: 12, fontWeight: 700,
                           color: T.accent, textDecoration: 'underline', textUnderlineOffset: 2,
-                        }}>{b.linkText} →</a>
+                        }}>{item.linkText} →</a>
                       )}
                     </div>
                   </div>

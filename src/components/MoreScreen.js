@@ -273,7 +273,7 @@ function SupportScreen({ onBack, T }) {
 export default function MoreScreen({ onTabBarHide, onTabBarShow }) {
   const { theme: T } = useTheme();
   const [view, setView] = useState('menu');
-  const { visitorUnread, adminUnread, markVisitorSeen, markAdminSeen } = useBookingNotifications();
+  const { visitorUnread, adminUnread, markVisitorSeen, markAdminSeen, activateForDevice } = useBookingNotifications();
 
   const bookingBadge = visitorUnread + adminUnread;
 
@@ -287,7 +287,7 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow }) {
   if (view === 'ebooks')   return <EbooksScreen onReaderOpen={() => {}} onReaderClose={() => {}} resetToLibrary={false} onTabBarHide={onTabBarHide} onTabBarShow={onTabBarShow} onBack={() => setView('menu')} />;
   if (view === 'about')    return <AboutScreen onBack={() => setView('menu')} />;
   if (view === 'support')  return <SupportScreen onBack={() => setView('menu')} T={T} />;
-  if (view === 'booking')  return <BookingScreen onBack={() => setView('menu')} />;
+  if (view === 'booking')  return <BookingScreen onBack={() => setView('menu')} activateForDevice={activateForDevice} />;
 
   return (
     <div style={{ background: T.bg, minHeight: '100%', fontFamily: 'system-ui, sans-serif' }}>
