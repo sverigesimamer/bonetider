@@ -26,8 +26,8 @@ const DAYS_SV   = ['Mån','Tis','Ons','Tor','Fre','Lör','Sön'];
 const MONTHS_SV = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
 
 // Halvtimmes-steg från 1h till 12h
-const DURATION_OPTIONS = [1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12];
-function fmtDuration(h){ return h%1===0?`${h} tim`:`${Math.floor(h)} tim 30 min`; }
+const DURATION_OPTIONS = [0.5,1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12];
+function fmtDuration(h){ return h===0.5?'30 min':h%1===0?`${h} tim`:`${Math.floor(h)} tim 30 min`; }
 const RECUR_OPTIONS      = [
   { value:'none',    label:'Ingen upprepning' },
   { value:'weekly',  label:'Veckovis' },
@@ -169,7 +169,7 @@ function ConfirmDialog({title,message,confirmLabel,confirmColor='#ef4444',onConf
 /* ── iOS-style scroll wheel duration picker ── */
 function DurationPicker({value, onChange, T}) {
   const ITEM_H = 44;
-  const VISIBLE = 5; // synliga rader
+  const VISIBLE = 3; // 3 synliga rader: en ovan, vald, en nedan
   const containerH = ITEM_H * VISIBLE;
   const listRef = React.useRef(null);
   const isDragging = React.useRef(false);
@@ -208,9 +208,9 @@ function DurationPicker({value, onChange, T}) {
   return <div style={{display:'flex',flexDirection:'column',gap:8}}>
     <label style={{fontSize:12,fontWeight:600,color:T.textMuted,fontFamily:'system-ui',letterSpacing:'.3px'}}>BOKNINGSLÄNGD</label>
     <div style={{position:'relative',height:containerH,borderRadius:14,overflow:'hidden',border:`1px solid ${T.border}`,background:T.cardElevated,userSelect:'none',WebkitUserSelect:'none'}}>
-      {/* Övre + nedre fade */}
-      <div style={{position:'absolute',top:0,left:0,right:0,height:ITEM_H*2,background:`linear-gradient(to bottom, ${T.cardElevated}, transparent)`,zIndex:2,pointerEvents:'none'}}/>
-      <div style={{position:'absolute',bottom:0,left:0,right:0,height:ITEM_H*2,background:`linear-gradient(to top, ${T.cardElevated}, transparent)`,zIndex:2,pointerEvents:'none'}}/>
+      {/* Övre + nedre fade — 1 rad för 3-raders picker */}
+      <div style={{position:'absolute',top:0,left:0,right:0,height:ITEM_H,background:`linear-gradient(to bottom, ${T.cardElevated}, transparent)`,zIndex:2,pointerEvents:'none'}}/>
+      <div style={{position:'absolute',bottom:0,left:0,right:0,height:ITEM_H,background:`linear-gradient(to top, ${T.cardElevated}, transparent)`,zIndex:2,pointerEvents:'none'}}/>
       {/* Markerings-rad */}
       <div style={{position:'absolute',top:'50%',left:0,right:0,height:ITEM_H,transform:'translateY(-50%)',background:`${T.accent}18`,borderTop:`1.5px solid ${T.accent}44`,borderBottom:`1.5px solid ${T.accent}44`,zIndex:1,pointerEvents:'none'}}/>
       {/* Scroll-lista */}
@@ -223,15 +223,15 @@ function DurationPicker({value, onChange, T}) {
         style={{height:'100%',overflowY:'scroll',scrollSnapType:'y mandatory',scrollbarWidth:'none',msOverflowStyle:'none',WebkitOverflowScrolling:'touch',cursor:'grab'}}
       >
         <style>{`.dur-scroll::-webkit-scrollbar{display:none}`}</style>
-        {/* Padding top/bottom så första/sista hamnar i mitten */}
-        <div style={{height:ITEM_H*2}}/>
+        {/* Padding top/bottom: 1 rad så första/sista hamnar i mitten */}
+        <div style={{height:ITEM_H}}/>
         {DURATION_OPTIONS.map((h,i)=>{
           const isSel=h===value;
           return <div key={h} onClick={()=>snapToIndex(i)} style={{height:ITEM_H,display:'flex',alignItems:'center',justifyContent:'center',scrollSnapAlign:'center',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
             <span style={{fontSize:isSel?18:15,fontWeight:isSel?800:400,color:isSel?T.accent:T.textMuted,fontFamily:'system-ui',transition:'all .15s',letterSpacing:isSel?'-.3px':'0'}}>{fmtDuration(h)}</span>
           </div>;
         })}
-        <div style={{height:ITEM_H*2}}/>
+        <div style={{height:ITEM_H}}/>
       </div>
     </div>
   </div>;
@@ -262,6 +262,7 @@ function RecurrencePicker({recurrence,onChange,recurCount,onCountChange,T}){
 function TimeSlotPanel({bookings,date,isAdmin,durationHours,onSelectSlot,onClose,T}){
   const iso=toISO(date);
   const availableStarts=getAvailableStarts(bookings,iso,durationHours);
+  const [showOnlyAvailable, setShowOnlyAvailable] = React.useState(false);
   const slots=useMemo(()=>{
     const booked=getBookedHours(bookings,iso);
     const result=[];
@@ -286,17 +287,24 @@ function TimeSlotPanel({bookings,date,isAdmin,durationHours,onSelectSlot,onClose
         <div style={{fontSize:13,fontWeight:700,color:T.text,fontFamily:'system-ui'}}>Tillgängliga tider · {fmtDuration(durationHours)}</div>
         <div style={{fontSize:11,color:T.textMuted,fontFamily:'system-ui',marginTop:2}}>{isoToDisplay(iso)}</div>
       </div>
-      <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:T.textMuted,padding:4}}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <div style={{display:'flex',alignItems:'center',gap:6}}>
+        <button onClick={()=>setShowOnlyAvailable(v=>!v)} style={{padding:'4px 10px',borderRadius:20,border:`1px solid ${showOnlyAvailable?T.accent:T.border}`,background:showOnlyAvailable?`${T.accent}22`:'none',color:showOnlyAvailable?T.accent:T.textMuted,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent',whiteSpace:'nowrap'}}>
+          {showOnlyAvailable?'Visa alla':'Bara lediga'}
+        </button>
+        <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:T.textMuted,padding:4}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
     </div>
-    {availableStarts.length===0&&<div style={{padding:'20px 16px',textAlign:'center',color:T.textMuted,fontSize:13,fontFamily:'system-ui'}}>
+    {availableStarts.length===0&&!showOnlyAvailable&&<div style={{padding:'20px 16px',textAlign:'center',color:T.textMuted,fontSize:13,fontFamily:'system-ui'}}>
       {slots.every(s=>isHourPast(iso,s.startH,durationHours))
         ? 'Alla bokningsbara tider har passerat för idag.'
-        : `Inga lediga tider för ${durationHours}h detta datum.`}
+        : `Inga lediga tider för ${fmtDuration(durationHours)} detta datum.`}
     </div>}
     <div style={{padding:'8px 10px 10px',display:'flex',flexDirection:'column',gap:6}}>
-      {slots.map(({startH,label,status,conflictBooking})=>{
+      {slots
+        .filter(s=>!showOnlyAvailable||(s.status==='available'&&!isHourPast(iso,s.startH,durationHours)))
+        .map(({startH,label,status,conflictBooking})=>{
         const past=isHourPast(iso,startH,durationHours);
         const color=past?'#888':slotColor(status);
         const canBook=!past&&status==='available';
@@ -1197,7 +1205,7 @@ export default function BookingScreen({onBack, activateForDevice, registerAdminD
           <button onClick={()=>setView('my-bookings')} style={{position:'relative',background:T.card,border:`1px solid ${T.border}`,borderRadius:12,width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </button>
-          <button onClick={()=>adminMode?setView('admin'):setView('admin-login')} style={{position:'relative',background:adminMode?`${T.accent}22`:T.card,border:`1px solid ${adminMode?T.accent+'66':T.border}`,borderRadius:12,width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
+          <button onClick={()=>setView('admin')} style={{position:'relative',background:adminMode?`${T.accent}22`:T.card,border:`1px solid ${adminMode?T.accent+'66':T.border}`,borderRadius:12,width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={adminMode?T.accent:T.textMuted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             {pendingCount>0&&adminMode&&<div style={{position:'absolute',top:-3,right:-3,width:14,height:14,borderRadius:'50%',background:'#f59e0b',color:'#fff',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{pendingCount}</div>}
           </button>

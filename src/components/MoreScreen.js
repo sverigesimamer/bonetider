@@ -277,10 +277,16 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView }) 
 
   const bookingBadge = visitorUnread + adminUnread;
 
-  const handleOpenBooking = (goToAdminLogin = false) => {
+  const handleOpenBooking = () => {
     markVisitorSeen();
     markAdminSeen();
-    setView(goToAdminLogin ? 'booking-admin-login' : 'booking');
+    setView('booking');
+  };
+
+  const handleOpenAdminLogin = () => {
+    markVisitorSeen();
+    markAdminSeen();
+    setView('booking-admin-login');
   };
 
   if (view === 'settings') return <SettingsScreen onBack={() => setView('menu')} />;

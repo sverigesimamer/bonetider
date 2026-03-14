@@ -263,12 +263,10 @@ export default function NewHomeScreen({ stream, onGoToAdminLogin }) {
                 position: 'sticky', top: 0, background: T.card, zIndex: 1,
               }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Meddelanden</span>
-                {allItems.length > 0 && (
-                  <button onClick={() => { markAllRead(); markVisitorSeen(); setShowBellPanel(false); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: T.accent, padding: '2px 0' }}>
-                    Markera alla lästa
-                  </button>
-                )}
+                <button onClick={() => { markAllRead(); markVisitorSeen(); setAdminNotifDismissedThisSession(true); setShowBellPanel(false); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: T.accent, padding: '2px 0' }}>
+                  Rensa meddelanden
+                </button>
               </div>
 
               {allItems.length === 0
