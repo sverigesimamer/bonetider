@@ -37,7 +37,7 @@ export default function CompassSVG({ heading, qiblaDir, isAligned, alignDelta, t
   const kaabaOnRing = qiblaDir != null ? qiblaDir : 0;
 
   return (
-    <svg width={size} height={size} style={{ display:'block' }}>
+    <svg width={size} height={size} style={{ display:'block', overflow:'visible' }}>
       <defs>
         <filter id="cglow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="4" result="b"/>

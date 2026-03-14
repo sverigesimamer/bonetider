@@ -40,7 +40,7 @@ export default function QiblaScreen() {
     );
   }, [dispatch]);
 
-  const compassSize = Math.min(window.innerWidth - 32, Math.min(window.innerHeight * 0.42, 300));
+  const compassSize = Math.min(window.innerWidth - 64, Math.min(window.innerHeight * 0.44, 300));
 
   const getHint = () => {
     if (!compassAvail || qiblaDir == null) return null;
@@ -55,7 +55,7 @@ export default function QiblaScreen() {
   const hint = getHint();
 
   return (
-    <div style={{ padding:'16px 16px 24px', background:T.bg, minHeight:'100%', overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', fontFamily:"'Inter',system-ui,sans-serif" }}>
+    <div style={{ padding:'16px 16px 24px', background:T.bg, minHeight:'100%', display:'flex', flexDirection:'column', alignItems:'center', fontFamily:"'Inter',system-ui,sans-serif" }}>
 
       {/* No location — GPS request */}
       {!location && (
@@ -156,7 +156,7 @@ export default function QiblaScreen() {
           )}
 
           {/* Compass */}
-          <div style={{ width:compassSize, height:compassSize, flexShrink:0, flexGrow:0 }}>
+          <div style={{ width:compassSize, height:compassSize, flexShrink:0, padding:12, boxSizing:'content-box' }}>
             <CompassSVG
               heading={heading}
               qiblaDir={qiblaDir}
