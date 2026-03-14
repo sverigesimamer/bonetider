@@ -12,7 +12,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../services/supabaseClient';
 
-const ADMIN_PIN      = 'Andalus2026';
+const ADMIN_PIN      = '4242';
 const STORAGE_ADMIN  = 'islamnu_admin_mode';
 const STORAGE_DEVICE    = 'islamnu_device_id';
 const STORAGE_EMAIL     = 'islamnu_user_email';
