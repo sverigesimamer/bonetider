@@ -46,6 +46,155 @@ function YoutubeCard({ stream, T }) {
   const scheduledLabel = React.useMemo(() => {
     if (!stream.scheduledStart) return null;
     return new Date(stream.scheduledStart).toLocaleString('sv-SE', {
+      weekday: 'long', day: 'numeric', month: 'short',
+      hour: '2-digit', minute: '2-digit',
+    });
+  }, [stream.scheduledStart]);
+
+  return (
+    <a
+      href={`https://www.youtube.com/watch?v=${stream.videoId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ textDecoration: 'none', display: 'block' }}
+    >
+      <div style={{
+        borderRadius: 16,
+        overflow: 'hidden',
+        border: `1px solid ${isLive ? '#FF0000' : '#f59e0b66'}`,
+        boxShadow: isLive
+          ? '0 0 0 2px rgba(255,0,0,0.2), 0 4px 24px rgba(255,0,0,0.15)'
+          : '0 0 0 1px rgba(245,158,11,0.15), 0 4px 20px rgba(0,0,0,0.08)',
+        background: T.card,
+        animation: isLive ? 'cardIn .35s ease both, liveCardRing 2s ease-out infinite' : 'cardIn .35s ease both',
+      }}>
+        {/* Thumbnail */}
+        <div style={{ position: 'relative', aspectRatio: '16/9', background: '#0f0f0f', overflow: 'hidden' }}>
+          {stream.thumbnail ? (
+            <img
+              src={stream.thumbnail}
+              alt={stream.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            /* Fallback för upcoming utan custom thumbnail */
+            <div style={{
+              width: '100%', height: '100%',
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
+            }}>
+              <svg width="48" height="34" viewBox="0 0 48 34" fill="none">
+                <rect width="48" height="34" rx="8" fill="#FF0000"/>
+                <path d="M19 10l13 7-13 7V10z" fill="white"/>
+              </svg>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontFamily: 'system-ui', textAlign: 'center', padding: '0 16px' }}>
+                {stream.title}
+              </div>
+            </div>
+          )}
+
+          {/* Live badge — pulsande */}
+          {isLive && (
+            <div style={{
+              position: 'absolute', top: 10, left: 10,
+              background: '#FF0000', color: '#fff',
+              borderRadius: 6, padding: '4px 10px',
+              fontSize: 11, fontWeight: 800, letterSpacing: 1,
+              fontFamily: 'system-ui',
+              display: 'flex', alignItems: 'center', gap: 6,
+              boxShadow: '0 2px 12px rgba(255,0,0,0.5)',
+            }}>
+              <span style={{
+                width: 7, height: 7, borderRadius: '50%',
+                background: '#fff',
+                animation: 'livePulse 1s ease-in-out infinite',
+                flexShrink: 0,
+              }}/>
+              LIVE
+            </div>
+          )}
+
+          {/* Upcoming badge */}
+          {!isLive && (
+            <div style={{
+              position: 'absolute', top: 10, left: 10,
+              background: 'rgba(245,158,11,0.9)', color: '#fff',
+              borderRadius: 6, padding: '4px 10px',
+              fontSize: 11, fontWeight: 700,
+              fontFamily: 'system-ui',
+              display: 'flex', alignItems: 'center', gap: 5,
+              backdropFilter: 'blur(4px)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            }}>
+              <span style={{ fontSize: 12 }}>📅</span> Schemalagd
+            </div>
+          )}
+
+          {/* Play-knapp overlay */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: isLive ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.22)',
+          }}>
+            <div style={{
+              width: isLive ? 56 : 52, height: isLive ? 56 : 52,
+              borderRadius: '50%',
+              background: isLive ? '#FF0000' : 'rgba(255,255,255,0.92)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: isLive ? '0 4px 20px rgba(255,0,0,0.5)' : '0 2px 12px rgba(0,0,0,0.3)',
+              transition: 'transform .15s',
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill={isLive ? '#fff' : '#111'}>
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Info rad */}
+        <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{
+            fontSize: 14, fontWeight: 700, color: T.text,
+            lineHeight: 1.35, fontFamily: "'Georgia', serif",
+            display: '-webkit-box', WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>{stream.title}</div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <AndalusLogo size={16} color={T.isDark ? '#fff' : T.accent} />
+              <span style={{ fontSize: 12, color: T.textMuted, fontFamily: 'system-ui' }}>Andalus</span>
+            </div>
+            {isLive ? (
+              <span style={{
+                fontSize: 12, fontWeight: 800, color: '#FF0000', fontFamily: 'system-ui',
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#FF0000', animation: 'livePulse 1s ease-in-out infinite', display: 'inline-block' }}/>
+                Titta nu →
+              </span>
+            ) : (
+              <div style={{ textAlign: 'right' }}>
+                {scheduledLabel && (
+                  <div style={{ fontSize: 11, color: T.textMuted, fontFamily: 'system-ui', textTransform: 'capitalize' }}>{scheduledLabel}</div>
+                )}
+                {countdown && (
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', fontFamily: 'system-ui' }}>
+                    om {countdown}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+  const scheduledLabel = React.useMemo(() => {
+    if (!stream.scheduledStart) return null;
+    return new Date(stream.scheduledStart).toLocaleString('sv-SE', {
       weekday: 'short', day: 'numeric', month: 'short',
       hour: '2-digit', minute: '2-digit',
     });
@@ -219,7 +368,8 @@ export default function NewHomeScreen({ stream, onGoToAdminLogin }) {
         @keyframes fadeUp   { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes bannerIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
         @keyframes cardIn   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes livePulse{ 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+        @keyframes livePulse{ 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.6)} }
+        @keyframes liveCardRing{ 0%{box-shadow:0 0 0 2px rgba(255,0,0,0.2),0 4px 24px rgba(255,0,0,0.15)} 50%{box-shadow:0 0 0 4px rgba(255,0,0,0.08),0 4px 24px rgba(255,0,0,0.1)} 100%{box-shadow:0 0 0 2px rgba(255,0,0,0.2),0 4px 24px rgba(255,0,0,0.15)} }
       `}</style>
 
       {/* ── TOP BAR ── */}
@@ -399,8 +549,26 @@ export default function NewHomeScreen({ stream, onGoToAdminLogin }) {
         {/* YouTube live / upcoming */}
         {stream && (
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8, fontFamily: 'system-ui' }}>
-              {stream.status === 'live' ? '🔴 Sänder just nu' : '📺 Kommande sändning'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              {stream.status === 'live' ? (
+                <>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%', background: '#FF0000', flexShrink: 0,
+                    animation: 'livePulse 1s ease-in-out infinite',
+                    boxShadow: '0 0 6px rgba(255,0,0,0.6)',
+                  }}/>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: '#FF0000', textTransform: 'uppercase', letterSpacing: 1.2, fontFamily: 'system-ui' }}>
+                    Direktsändning just nu
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }}/>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: 1.2, fontFamily: 'system-ui' }}>
+                    Kommande sändning
+                  </span>
+                </>
+              )}
             </div>
             <YoutubeCard stream={stream} T={T} />
           </div>

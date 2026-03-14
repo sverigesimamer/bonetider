@@ -63,6 +63,7 @@ function Shell() {
   const [moreResetKey, setMoreResetKey]   = useState(0);
   const scrollContainerRef = useRef(null);
   const { isLive, stream } = useYoutubeLive();
+  const isUpcoming = stream?.status === 'upcoming';
   const { totalUnread, visitorUnread, adminUnread, adminPendingCount, markVisitorSeen, markAdminSeen, activateForDevice, registerAdminDevice, adminPendingNotif } = useBookingNotifications();
 
   // Reset scroll to top when tab or monthly view changes
@@ -213,7 +214,10 @@ function Shell() {
         zIndex: 200,
         transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
-        <style>{`@keyframes liveDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}`}</style>
+        <style>{`
+          @keyframes liveDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.65)}}
+          @keyframes liveRing{0%{box-shadow:0 0 0 0 rgba(255,0,0,0.7)}70%{box-shadow:0 0 0 5px rgba(255,0,0,0)}100%{box-shadow:0 0 0 0 rgba(255,0,0,0)}}
+        `}</style>
         {TABS.map(t => {
           const active = tab === t.id;
           return (
@@ -283,11 +287,19 @@ function Shell() {
                   />
                   {t.id === 'home' && isLive && (
                     <div style={{
-                      position: 'absolute', top: -2, right: -3,
-                      width: 8, height: 8, borderRadius: '50%',
+                      position: 'absolute', top: -3, right: -4,
+                      width: 11, height: 11, borderRadius: '50%',
                       background: '#FF0000',
-                      border: `1.5px solid ${T.isDark ? 'rgba(18,18,18,0.9)' : 'rgba(245,248,247,0.9)'}`,
-                      animation: 'liveDot 1.4s ease-in-out infinite',
+                      border: `2px solid ${T.isDark ? 'rgba(18,18,18,0.95)' : 'rgba(245,248,247,0.95)'}`,
+                      animation: 'liveDot 1s ease-in-out infinite, liveRing 1.5s ease-out infinite',
+                    }} />
+                  )}
+                  {t.id === 'home' && isUpcoming && !isLive && (
+                    <div style={{
+                      position: 'absolute', top: -3, right: -4,
+                      width: 9, height: 9, borderRadius: '50%',
+                      background: '#f59e0b',
+                      border: `2px solid ${T.isDark ? 'rgba(18,18,18,0.95)' : 'rgba(245,248,247,0.95)'}`,
                     }} />
                   )}
                 </div>
@@ -295,11 +307,15 @@ function Shell() {
               <span style={{
                 fontSize: 9, fontWeight: active ? 700 : 500,
                 letterSpacing: '.3px',
-                color: active ? T.accent : T.isDark ? T.accent : T.text,
+                color: t.id === 'home' && isLive
+                  ? '#FF0000'
+                  : t.id === 'home' && isUpcoming
+                    ? '#f59e0b'
+                    : active ? T.accent : T.isDark ? T.accent : T.text,
                 opacity: active ? 1 : T.isDark ? 0.7 : 1,
                 whiteSpace: 'nowrap',
                 transition: 'all .2s',
-              }}>{t.label}</span>
+              }}>{t.id === 'home' && isLive ? 'LIVE' : t.id === 'home' && isUpcoming ? 'Snart' : t.label}</span>
             </button>
           );
         })}
