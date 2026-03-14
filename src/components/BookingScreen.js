@@ -956,7 +956,7 @@ function AdminEditForm({booking, bookings, onSubmit, onBack, loading, T}){
 }
 
 /* ── AdminPanel ── */
-function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,actionLoading,onTabBarHide,onTabBarShow,T}){
+function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,onLogout,actionLoading,onTabBarHide,onTabBarShow,T}){
   const [filter,setFilter]=useState('all');
   const [selected,setSelected]=useState(null);
   const [comment,setComment]=useState('');
@@ -1053,10 +1053,15 @@ function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,act
         <div style={{fontSize:22,fontWeight:800,color:T.text,letterSpacing:'-.4px'}}>Adminpanel</div>
         {pending>0&&<div style={{background:'#f59e0b',color:'#fff',fontSize:11,fontWeight:700,borderRadius:10,padding:'3px 8px'}}>{pending} ny</div>}
       </div>
-      <button onClick={()=>setShowAddRecur(true)} style={{display:'flex',alignItems:'center',gap:6,background:'#8b5cf622',border:'1px solid #8b5cf644',borderRadius:10,padding:'7px 12px',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-        <span style={{fontSize:12,fontWeight:700,color:'#8b5cf6',fontFamily:'system-ui'}}>Återkommande</span>
-      </button>
+      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <button onClick={()=>setShowAddRecur(true)} style={{display:'flex',alignItems:'center',gap:6,background:'#8b5cf622',border:'1px solid #8b5cf644',borderRadius:10,padding:'7px 12px',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          <span style={{fontSize:12,fontWeight:700,color:'#8b5cf6',fontFamily:'system-ui'}}>Återkommande</span>
+        </button>
+        {onLogout&&<button onClick={onLogout} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',background:'#ef444418',border:'1px solid #ef444433',borderRadius:10,cursor:'pointer',WebkitTapHighlightColor:'transparent'}} title="Logga ut">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>}
+      </div>
     </div>
     <div style={{display:'flex',gap:6,marginBottom:14,flexWrap:'wrap'}}>
       {[['all','Alla'],['pending','Väntar'],['approved','Godkända'],['edited','Ändrade'],['rejected','Avböjda'],['cancelled','Inställda']].map(([id,label])=>(
@@ -1347,7 +1352,7 @@ export default function BookingScreen({onBack, activateForDevice, registerAdminD
 
   if(view==='admin-login') return <div style={{background:T.bg,minHeight:'100%'}}><AdminLogin onSuccess={handleAdminLogin} onBack={()=>setView('calendar')} T={T}/></div>;
   if(view==='admin') return <div style={{background:T.bg,minHeight:'100%'}}>
-    <AdminPanel bookings={bookings} onAction={handleAdminAction} onEdit={handleAdminEdit} onDelete={handleAdminDelete} onAddRecurring={handleAdminAddRecurring} onBack={()=>setView('calendar')} actionLoading={actionLoading} onTabBarHide={onTabBarHide} onTabBarShow={onTabBarShow} T={T}/>
+    <AdminPanel bookings={bookings} onAction={handleAdminAction} onEdit={handleAdminEdit} onDelete={handleAdminDelete} onAddRecurring={handleAdminAddRecurring} onBack={()=>setView('calendar')} onLogout={handleAdminLogout} actionLoading={actionLoading} onTabBarHide={onTabBarHide} onTabBarShow={onTabBarShow} T={T}/>
     <Toast message={toast} T={T}/>
   </div>;
 
@@ -1364,7 +1369,7 @@ export default function BookingScreen({onBack, activateForDevice, registerAdminD
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             {visitorUnread>0&&!adminMode&&<div style={{position:'absolute',top:-3,right:-3,width:14,height:14,borderRadius:'50%',background:'#ef4444',color:'#fff',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{visitorUnread>9?'9+':visitorUnread}</div>}
           </button>
-          <button onClick={()=>setView('admin')} style={{position:'relative',background:adminMode?`${T.accent}22`:T.card,border:`1px solid ${adminMode?T.accent+'66':T.border}`,borderRadius:12,width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
+          <button onClick={()=>adminMode?setView('admin'):setView('admin-login')} style={{position:'relative',background:adminMode?`${T.accent}22`:T.card,border:`1px solid ${adminMode?T.accent+'66':T.border}`,borderRadius:12,width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={adminMode?T.accent:T.textMuted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             {pendingCount>0&&<div style={{position:'absolute',top:-3,right:-3,width:14,height:14,borderRadius:'50%',background:'#f59e0b',color:'#fff',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{pendingCount>9?'9+':pendingCount}</div>}
           </button>
