@@ -65,14 +65,14 @@ function SettingsGearIcon({ color }) {
   );
 }
 
-function GridCard({ item, onPress, T, badge = 0 }) {
+function GridCard({ item, onPress, T, badge = 0, pulse = false }) {
   const accent = item.accentColor || T.accent;
   return (
     <button
       onClick={onPress}
       style={{
         background: T.card,
-        border: `1px solid ${T.border}`,
+        border: `1px solid ${pulse ? item.accentColor || T.accent : T.border}`,
         borderRadius: 18,
         padding: '18px 14px 14px',
         cursor: 'pointer',
@@ -82,20 +82,23 @@ function GridCard({ item, onPress, T, badge = 0 }) {
         flexDirection: 'column',
         alignItems: 'center',
         gap: 8,
-        transition: 'transform .12s',
+        transition: 'transform .12s, border-color .3s',
         WebkitUserSelect: 'none',
         position: 'relative',
+        boxShadow: pulse ? `0 0 0 0 ${item.accentColor || T.accent}55` : 'none',
+        animation: pulse ? 'cardPulse 2s ease-in-out infinite' : 'none',
       }}
     >
       {badge > 0 && (
         <div style={{
           position: 'absolute', top: 10, right: 10,
-          minWidth: 18, height: 18, borderRadius: 9,
+          minWidth: 20, height: 20, borderRadius: 10,
           background: '#ef4444', color: '#fff',
-          fontSize: 10, fontWeight: 800, fontFamily: 'system-ui',
+          fontSize: 11, fontWeight: 800, fontFamily: 'system-ui',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '0 4px', boxSizing: 'border-box',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+          padding: '0 5px', boxSizing: 'border-box',
+          boxShadow: '0 2px 6px rgba(239,68,68,0.5)',
+          animation: 'badgePop .3s cubic-bezier(0.175,0.885,0.32,1.275)',
         }}>{badge > 9 ? '9+' : badge}</div>
       )}
       <div style={{
@@ -273,9 +276,9 @@ function SupportScreen({ onBack, T }) {
 export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView }) {
   const { theme: T } = useTheme();
   const [view, setView] = useState(initialView || 'menu');
-  const { visitorUnread, adminUnread, markVisitorSeen, markAdminSeen, activateForDevice, registerAdminDevice } = useBookingNotifications();
+  const { visitorUnread, adminUnread, adminPendingNotif, markVisitorSeen, markAdminSeen, activateForDevice, registerAdminDevice } = useBookingNotifications();
 
-  const bookingBadge = visitorUnread + adminUnread;
+  const bookingBadge = visitorUnread + adminUnread + (adminPendingNotif ? adminPendingNotif.count : 0);
 
   const handleOpenBooking = () => {
     markVisitorSeen();
@@ -305,6 +308,18 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView }) 
 
   return (
     <div style={{ background: T.bg, minHeight: '100%', fontFamily: 'system-ui, sans-serif' }}>
+      <style>{`
+        @keyframes cardPulse {
+          0%   { box-shadow: 0 0 0 0px rgba(45,139,120,0.4); }
+          60%  { box-shadow: 0 0 0 7px rgba(45,139,120,0); }
+          100% { box-shadow: 0 0 0 0px rgba(45,139,120,0); }
+        }
+        @keyframes badgePop {
+          0%   { transform: scale(0); }
+          80%  { transform: scale(1.2); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
       <div style={{ padding: '20px 16px 12px', paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
 
         {/* Header row: title + settings icon */}
@@ -341,6 +356,7 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView }) 
               onPress={item.id === 'booking' ? handleOpenBooking : () => setView(item.id)}
               T={T}
               badge={item.id === 'booking' ? bookingBadge : 0}
+              pulse={item.id === 'booking' && bookingBadge > 0}
             />
           ))}
         </div>
