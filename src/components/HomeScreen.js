@@ -278,10 +278,10 @@ export default function HomeScreen({ onMonthlyPress }) {
               position:'absolute', top:4, right: 4,
               background:'none', border:'none', cursor:'pointer',
               padding:6, WebkitTapHighlightColor:'transparent',
-              opacity: 0.6,
+              opacity: 1,
             }}
           >
-            <SvgIcon name="calendar" size={22} color={T.textMuted} />
+            <SvgIcon name="calendar" size={28} color={T.textMuted} />
           </button>
         )}
 
