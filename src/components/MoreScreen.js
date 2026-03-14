@@ -299,6 +299,8 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView }) 
       activateForDevice={activateForDevice}
       registerAdminDevice={registerAdminDevice}
       startAtAdminLogin={view === 'booking-admin-login'}
+      onTabBarHide={onTabBarHide}
+      onTabBarShow={onTabBarShow}
     />;
 
   return (

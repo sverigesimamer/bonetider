@@ -82,9 +82,21 @@ function getAvailableStarts(bookings,iso,durationHours,excludeId=null){
   return starts;
 }
 function hasAnyAvailable(bookings,date,durationHours){ return getAvailableStarts(bookings,toISO(date),durationHours).length>0; }
-function getRecurDates(startISO,recurrence,count){
-  const dates=[startISO]; const base=parseISO(startISO);
-  for(let i=1;i<count;i++){ const d=new Date(base); if(recurrence==='weekly') d.setDate(d.getDate()+7*i); if(recurrence==='monthly') d.setMonth(d.getMonth()+i); dates.push(toISO(d)); }
+function getRecurDates(startISO,recurrence){
+  if(recurrence==='none') return [startISO];
+  const dates=[startISO];
+  const base=parseISO(startISO);
+  // Generera upp till 5 år framåt
+  const maxDate=new Date(base); maxDate.setFullYear(maxDate.getFullYear()+5);
+  let i=1;
+  while(true){
+    const d=new Date(base);
+    if(recurrence==='weekly') d.setDate(d.getDate()+7*i);
+    if(recurrence==='monthly') d.setMonth(d.getMonth()+i);
+    if(d>maxDate) break;
+    dates.push(toISO(d));
+    i++;
+  }
   return dates;
 }
 function slotColor(status){ return status==='available'?'#22c55e':status==='pending'?'#f59e0b':status==='booked'?'#ef4444':'#888'; }
@@ -151,8 +163,14 @@ function Spinner({T}){
 function ConfirmDialog({title,message,confirmLabel,confirmColor='#ef4444',onConfirm,onCancel,requireText,requirePlaceholder,T}){
   const [text,setText]=useState('');
   const canConfirm=!requireText||text.trim().length>0;
-  return <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
-    <div style={{background:T.card,borderRadius:'20px 20px 0 0',padding:'24px 20px 36px',width:'100%',maxWidth:500,boxSizing:'border-box'}}>
+  return <div
+    style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'flex-end',justifyContent:'center'}}
+    onClick={onCancel}
+  >
+    <div
+      onClick={e=>e.stopPropagation()}
+      style={{background:T.card,borderRadius:'20px 20px 0 0',padding:'24px 20px 36px',width:'100%',maxWidth:500,boxSizing:'border-box',animation:'slideUp .25s cubic-bezier(0.32,0.72,0,1)'}}
+    >
       <div style={{fontSize:18,fontWeight:800,color:T.text,marginBottom:8,fontFamily:'system-ui'}}>{title}</div>
       <div style={{fontSize:14,color:T.textMuted,marginBottom:16,fontFamily:'system-ui',lineHeight:1.5}}>{message}</div>
       {requireText&&<div style={{marginBottom:14}}>
@@ -177,11 +195,14 @@ function DurationPicker({value, onChange, T}) {
   const startScrollTop = React.useRef(0);
   const selectedIdx = DURATION_OPTIONS.indexOf(value) === -1 ? 0 : DURATION_OPTIONS.indexOf(value);
 
-  // Scrolla till valt index vid mount och vid value-ändring utifrån
+  // Scrolla till valt index vid mount och vid value-ändring — RAF för smooth
   React.useEffect(() => {
     if (!listRef.current) return;
-    listRef.current.scrollTop = selectedIdx * ITEM_H;
-  }, [selectedIdx]);
+    const target = selectedIdx * ITEM_H;
+    requestAnimationFrame(() => {
+      if (listRef.current) listRef.current.scrollTop = target;
+    });
+  }, [selectedIdx, ITEM_H]);
 
   const snapToIndex = React.useCallback((idx) => {
     const clamped = Math.max(0, Math.min(DURATION_OPTIONS.length - 1, idx));
@@ -237,7 +258,7 @@ function DurationPicker({value, onChange, T}) {
   </div>;
 }
 
-function RecurrencePicker({recurrence,onChange,recurCount,onCountChange,T}){
+function RecurrencePicker({recurrence,onChange,T}){
   return <div style={{display:'flex',flexDirection:'column',gap:10}}>
     <label style={{fontSize:12,fontWeight:600,color:T.textMuted,fontFamily:'system-ui',letterSpacing:'.3px'}}>UPPREPNING</label>
     <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
@@ -245,16 +266,7 @@ function RecurrencePicker({recurrence,onChange,recurCount,onCountChange,T}){
         <button key={o.value} onClick={()=>onChange(o.value)} style={{padding:'7px 14px',borderRadius:20,border:`1px solid ${recurrence===o.value?T.accent:T.border}`,background:recurrence===o.value?`${T.accent}22`:'none',color:recurrence===o.value?T.accent:T.textMuted,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent'}}>{o.label}</button>
       ))}
     </div>
-    {recurrence!=='none'&&(
-      <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-        <span style={{fontSize:12,color:T.textMuted,fontFamily:'system-ui'}}>Antal tillfällen:</span>
-        <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-          {RECUR_COUNT_OPTIONS.map(n=>(
-            <button key={n} onClick={()=>onCountChange(n)} style={{width:36,height:32,borderRadius:8,border:`1.5px solid ${recurCount===n?T.accent:T.border}`,background:recurCount===n?`${T.accent}22`:'none',color:recurCount===n?T.accent:T.text,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent'}}>{n}</button>
-          ))}
-        </div>
-      </div>
-    )}
+    {recurrence!=='none'&&<div style={{fontSize:11,color:T.textMuted,fontFamily:'system-ui',padding:'4px 2px'}}>Bokningen upprepas tills vidare och kan avbokas när som helst.</div>}
   </div>;
 }
 
@@ -331,8 +343,8 @@ function CalendarView({bookings,onSelectSlot,isAdmin,T}){
   const today=new Date(); today.setHours(0,0,0,0);
   const [viewMode,setViewMode]=useState('week');
   const [anchor,setAnchor]=useState(today);
-  const [selectedDate,setSelectedDate]=useState(null);
-  const [showSlots,setShowSlots]=useState(false);
+  const [selectedDate,setSelectedDate]=useState(today);  // Fix 6: idag vald direkt
+  const [showSlots,setShowSlots]=useState(true);          // Fix 6: visa tider direkt
   const [durationHours,setDurationHours]=useState(1);
   const weekDays=useMemo(()=>getWeekDays(anchor),[anchor]);
   const monthGrid=useMemo(()=>getMonthGrid(anchor.getFullYear(),anchor.getMonth()),[anchor]);
@@ -354,7 +366,7 @@ function CalendarView({bookings,onSelectSlot,isAdmin,T}){
     </button>;
   };
   return <div>
-    <div style={{marginBottom:14}}><DurationPicker value={durationHours} onChange={h=>{setDurationHours(h);setShowSlots(false);}} T={T}/></div>
+    <div style={{marginBottom:14}}><DurationPicker value={durationHours} onChange={h=>{setDurationHours(h);}} T={T}/></div>
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
       <div style={{display:'flex',gap:6}}>
         {['week','month'].map(m=><button key={m} onClick={()=>setViewMode(m)} style={{padding:'5px 14px',borderRadius:20,border:`1px solid ${viewMode===m?T.accent:T.border}`,background:viewMode===m?`${T.accent}22`:'none',color:viewMode===m?T.accent:T.textMuted,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent'}}>{m==='week'?'Vecka':'Månad'}</button>)}
@@ -388,7 +400,7 @@ function BookingForm({date,slotLabel:slot,durationHours,onSubmit,onBack,loading,
   const [recurCount,setRecurCount]=useState(4);
   const [error,setError]=useState('');
   const set=f=>v=>setForm(p=>({...p,[f]:v}));
-  const recurDates=useMemo(()=>recurrence==='none'?[toISO(date)]:getRecurDates(toISO(date),recurrence,recurCount),[date,recurrence,recurCount]);
+  const recurDates=useMemo(()=>recurrence==='none'?[toISO(date)]:getRecurDates(toISO(date),recurrence),[date,recurrence,recurCount]);
   const conflictDates=useMemo(()=>{
     if(recurrence==='none') return [];
     const startH=parseSlotStart(slot);
@@ -414,7 +426,7 @@ function BookingForm({date,slotLabel:slot,durationHours,onSubmit,onBack,loading,
       <Input label="E-POST" value={form.email} onChange={set('email')} placeholder="din@epost.se" required T={T} type="email"/>
       <Textarea label="AKTIVITET" value={form.activity} onChange={set('activity')} placeholder="Beskriv aktiviteten kort..." required T={T}/>
       <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:'14px'}}>
-        <RecurrencePicker recurrence={recurrence} onChange={setRecurrence} recurCount={recurCount} onCountChange={setRecurCount} T={T}/>
+        <RecurrencePicker recurrence={recurrence} onChange={setRecurrence} T={T}/>
         {recurrence!=='none'&&<div style={{marginTop:12}}>
           <div style={{fontSize:11,fontWeight:700,color:T.textMuted,letterSpacing:'.3px',marginBottom:6}}>TILLFÄLLEN SOM INGÅR</div>
           <div style={{display:'flex',flexDirection:'column',gap:4}}>
@@ -673,7 +685,7 @@ function AdminAddRecurring({onSubmit,onBack,bookings,T}){
   const [error,setError]=useState('');
   const set=f=>v=>setForm(p=>({...p,[f]:v}));
   const monthGrid=useMemo(()=>getMonthGrid(anchor.getFullYear(),anchor.getMonth()),[anchor]);
-  const recurDates=useMemo(()=>!selectedDate?[]:getRecurDates(toISO(selectedDate),recurrence,recurCount),[selectedDate,recurrence,recurCount]);
+  const recurDates=useMemo(()=>!selectedDate?[]:getRecurDates(toISO(selectedDate),recurrence),[selectedDate,recurrence,recurCount]);
   const isPast=(d)=>{if(!d) return false;const x=new Date(d);x.setHours(0,0,0,0);return x<today;};
   const isToday=(d)=>{if(!d) return false;const x=new Date(d);x.setHours(0,0,0,0);return x.getTime()===today.getTime();};
   const handleSubmit=()=>{
@@ -687,7 +699,7 @@ function AdminAddRecurring({onSubmit,onBack,bookings,T}){
     {step==='date'&&<>
       <div style={{fontSize:12,fontWeight:700,color:T.textMuted,marginBottom:10,letterSpacing:'.3px'}}>1. VÄLJ STARTDATUM & INSTÄLLNINGAR</div>
       <div style={{marginBottom:14}}><DurationPicker value={durationHours} onChange={setDurationHours} T={T}/></div>
-      <div style={{marginBottom:14}}><RecurrencePicker recurrence={recurrence} onChange={setRecurrence} recurCount={recurCount} onCountChange={setRecurCount} T={T}/></div>
+      <div style={{marginBottom:14}}><RecurrencePicker recurrence={recurrence} onChange={setRecurrence} T={T}/></div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
         <button onClick={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()-1);setAnchor(d);}} style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:T.text}}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -815,7 +827,7 @@ function AdminEditForm({booking, bookings, onSubmit, onBack, loading, T}){
 }
 
 /* ── AdminPanel ── */
-function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,actionLoading,T}){
+function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,actionLoading,onTabBarHide,onTabBarShow,T}){
   const [filter,setFilter]=useState('all');
   const [selected,setSelected]=useState(null);
   const [comment,setComment]=useState('');
@@ -823,7 +835,9 @@ function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,act
   const [showAddRecur,setShowAddRecur]=useState(false);
   const [showEditForm,setShowEditForm]=useState(false);
   const [showDeleteDialog,setShowDeleteDialog]=useState(false);
-  const filtered=bookings.filter(b=>filter==='all'||b.status===filter).sort((a,b)=>b.created_at-a.created_at);
+  const filtered=bookings
+    .filter(b=>filter==='all'||(filter==='pending'?['pending','edit_pending'].includes(b.status):b.status===filter))
+    .sort((a,b)=>b.created_at-a.created_at);
 
   const handleAction=(booking,action)=>{
     if(action==='rejected'&&!comment.trim()){setCommentError('Du måste ange en kommentar vid avböjning.');return;}
@@ -842,8 +856,8 @@ function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,act
       confirmColor="#ef4444"
       requireText="FÖRKLARING TILL BESÖKAREN *"
       requirePlaceholder="Förklara varför bokningen tas bort..."
-      onConfirm={(text)=>{onDelete(selected.id,text);setShowDeleteDialog(false);setSelected(null);}}
-      onCancel={()=>setShowDeleteDialog(false)}
+      onConfirm={(text)=>{onDelete(selected.id,text);setShowDeleteDialog(false);setSelected(null);onTabBarShow?.();}}
+      onCancel={()=>{setShowDeleteDialog(false);onTabBarShow?.();}}
       T={T}
     />}
     <BackButton onBack={()=>{setSelected(null);setComment('');setCommentError('');setShowDeleteDialog(false);}} T={T}/>
@@ -895,7 +909,7 @@ function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,act
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Ändra bokning
       </button>
-      <button onClick={()=>setShowDeleteDialog(true)} disabled={actionLoading} style={{flex:1,padding:'13px',borderRadius:12,border:'1px solid #ef444433',background:'#ef444411',color:'#ef4444',fontSize:14,fontWeight:700,cursor:actionLoading?'default':'pointer',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+      <button onClick={()=>{setShowDeleteDialog(true);onTabBarHide?.();}} disabled={actionLoading} style={{flex:1,padding:'13px',borderRadius:12,border:'1px solid #ef444433',background:'#ef444411',color:'#ef4444',fontSize:14,fontWeight:700,cursor:actionLoading?'default':'pointer',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
         {actionLoading?'...':'Ta bort'}
       </button>
@@ -916,7 +930,7 @@ function AdminPanel({bookings,onAction,onEdit,onDelete,onAddRecurring,onBack,act
       </button>
     </div>
     <div style={{display:'flex',gap:6,marginBottom:14,flexWrap:'wrap'}}>
-      {[['all','Alla'],['pending','Väntar'],['edit_pending','Ändr. väntar'],['approved','Godkända'],['edited','Ändrade'],['rejected','Avböjda'],['cancelled','Inställda']].map(([id,label])=>(
+      {[['all','Alla'],['pending','Väntar'],['approved','Godkända'],['edited','Ändrade'],['rejected','Avböjda'],['cancelled','Inställda']].map(([id,label])=>(
         <button key={id} onClick={()=>setFilter(id)} style={{padding:'5px 14px',borderRadius:20,border:`1px solid ${filter===id?T.accent:T.border}`,background:filter===id?`${T.accent}22`:'none',color:filter===id?T.accent:T.textMuted,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'system-ui',WebkitTapHighlightColor:'transparent'}}>{label}</button>
       ))}
     </div>
@@ -964,7 +978,7 @@ function AdminLogin({onSuccess,onBack,T}){
 }
 
 /* ── Root ── */
-export default function BookingScreen({onBack, activateForDevice, registerAdminDevice, startAtAdminLogin}){
+export default function BookingScreen({onBack, activateForDevice, registerAdminDevice, startAtAdminLogin, onTabBarHide, onTabBarShow}){
   const {theme:T}=useTheme();
   const [bookings,setBookings]=useState([]);
   const [dbLoading,setDbLoading]=useState(true);
@@ -1146,6 +1160,12 @@ export default function BookingScreen({onBack, activateForDevice, registerAdminD
     setPendingSlot({date,slotLabel:slotLbl,startH,durationHours});setView('form');
   },[adminMode]);
 
+  // Fix 5: räkna olästa notiser för besökare (egna bokningar med svar)
+  const visitorUnread = useMemo(()=>{
+    const seenAt = parseInt(localStorage.getItem('islamnu_bookings_visitor_seen')||'0',10);
+    return myBookings.filter(b=>['approved','rejected','cancelled','edited'].includes(b.status)&&b.resolved_at>seenAt).length;
+  },[myBookings]);
+
   const pendingCount=bookings.filter(b=>b.status==='pending'||b.status==='edit_pending').length;
 
   /* Views */
@@ -1161,6 +1181,8 @@ export default function BookingScreen({onBack, activateForDevice, registerAdminD
 
   if(view==='my-bookings'){
     if(viewConfirmation) return <div style={{background:T.bg,minHeight:'100%'}}><ConfirmationScreen booking={viewConfirmation} onBack={()=>setViewConfirmation(null)} T={T}/></div>;
+    // Dölj tab-bar när dialog är öppen
+    if(cancelDialog) onTabBarHide?.(); else onTabBarShow?.();
     return <div style={{background:T.bg,minHeight:'100%'}}>
       {cancelDialog&&<ConfirmDialog
         title={['pending','edit_pending'].includes(cancelDialog.status)?'Återkalla bokning':'Avboka bokning'}
@@ -1171,8 +1193,8 @@ export default function BookingScreen({onBack, activateForDevice, registerAdminD
         confirmColor="#ef4444"
         requireText={['approved','edited'].includes(cancelDialog.status)?'ANLEDNING TILL AVBOKNING *':undefined}
         requirePlaceholder="Förklara varför du avbokar..."
-        onConfirm={(reason)=>handleVisitorCancel(cancelDialog, reason)}
-        onCancel={()=>setCancelDialog(null)}
+        onConfirm={(reason)=>{handleVisitorCancel(cancelDialog,reason);onTabBarShow?.();}}
+        onCancel={()=>{setCancelDialog(null);onTabBarShow?.();}}
         T={T}
       />}
       <MyBookings
@@ -1189,12 +1211,12 @@ export default function BookingScreen({onBack, activateForDevice, registerAdminD
 
   if(view==='admin-login') return <div style={{background:T.bg,minHeight:'100%'}}><AdminLogin onSuccess={handleAdminLogin} onBack={()=>setView('calendar')} T={T}/></div>;
   if(view==='admin') return <div style={{background:T.bg,minHeight:'100%'}}>
-    <AdminPanel bookings={bookings} onAction={handleAdminAction} onEdit={handleAdminEdit} onDelete={handleAdminDelete} onAddRecurring={handleAdminAddRecurring} onBack={()=>setView('calendar')} actionLoading={actionLoading} T={T}/>
+    <AdminPanel bookings={bookings} onAction={handleAdminAction} onEdit={handleAdminEdit} onDelete={handleAdminDelete} onAddRecurring={handleAdminAddRecurring} onBack={()=>setView('calendar')} actionLoading={actionLoading} onTabBarHide={onTabBarHide} onTabBarShow={onTabBarShow} T={T}/>
     <Toast message={toast} T={T}/>
   </div>;
 
   return <div style={{background:T.bg,minHeight:'100%',fontFamily:'system-ui, sans-serif'}}>
-    <style>{`@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}} @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    <style>{`@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}} @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}} @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
     <div style={{padding:'20px 16px 24px',paddingTop:'max(20px, env(safe-area-inset-top))'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
         <div>
@@ -1204,10 +1226,11 @@ export default function BookingScreen({onBack, activateForDevice, registerAdminD
         <div style={{display:'flex',gap:8}}>
           <button onClick={()=>setView('my-bookings')} style={{position:'relative',background:T.card,border:`1px solid ${T.border}`,borderRadius:12,width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            {visitorUnread>0&&!adminMode&&<div style={{position:'absolute',top:-3,right:-3,width:14,height:14,borderRadius:'50%',background:'#ef4444',color:'#fff',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{visitorUnread>9?'9+':visitorUnread}</div>}
           </button>
           <button onClick={()=>setView('admin')} style={{position:'relative',background:adminMode?`${T.accent}22`:T.card,border:`1px solid ${adminMode?T.accent+'66':T.border}`,borderRadius:12,width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={adminMode?T.accent:T.textMuted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            {pendingCount>0&&adminMode&&<div style={{position:'absolute',top:-3,right:-3,width:14,height:14,borderRadius:'50%',background:'#f59e0b',color:'#fff',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{pendingCount}</div>}
+            {pendingCount>0&&<div style={{position:'absolute',top:-3,right:-3,width:14,height:14,borderRadius:'50%',background:'#f59e0b',color:'#fff',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{pendingCount>9?'9+':pendingCount}</div>}
           </button>
           {adminMode&&<button onClick={handleAdminLogout} style={{background:'#ef444418',border:'1px solid #ef444433',borderRadius:12,width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',WebkitTapHighlightColor:'transparent'}}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
