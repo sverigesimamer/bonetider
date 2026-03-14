@@ -260,7 +260,7 @@ export default function NewHomeScreen({ stream, onGoToAdminLogin }) {
         minHeight: 104,
       }}>
         {/* Logo — absolute left, same as Bönetider */}
-        <div style={{ position: 'absolute', top: 12, left: 14, pointerEvents: 'none', userSelect: 'none' }}>
+        <div style={{ position: 'absolute', top: 0, left: 8, pointerEvents: 'none', userSelect: 'none' }}>
           <AndalusLogo size={80} color={T.isDark ? T.accent : T.accent} />
         </div>
 
