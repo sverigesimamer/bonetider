@@ -180,15 +180,18 @@ function ListRow({ name, onPress, isFav, onToggleFav, T }) {
       <button
         onClick={togglePlay}
         style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          padding: '13px 10px', color: playing ? T.accent : T.textMuted,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 32, height: 32, borderRadius: 16,
+          background: playing ? T.accent : `${T.accent}18`,
+          border: `1.5px solid ${T.accent}`,
+          cursor: 'pointer', color: playing ? '#fff' : T.accent,
           WebkitTapHighlightColor: 'transparent',
-          display: 'flex', alignItems: 'center', flexShrink: 0,
+          transition: 'all .15s', flexShrink: 0, margin: '0 10px',
         }}
       >
         {playing
-          ? <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          : <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          ? <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          : <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
         }
       </button>
 
