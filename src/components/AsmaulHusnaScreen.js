@@ -352,11 +352,26 @@ function DetailScreen({ name, onBack, isFav, onToggleFav, T }) {
   );
 }
 
+// ── Q&A data ──────────────────────────────────────────────────
+const QA_DATA = [
+  {
+    fraga: 'Har Allah endast 99 namn?',
+    subtitle: 'Bevis från hadith: fler namn än 99',
+    svar_kort: 'Nej.',
+    forklaring: 'Beviset för det är hadithen där Profeten (salla Allahu \'alayhi wa sallam) sade:',
+    citat: 'Jag ber dig vid varje namn som du har namngivit dig själv med eller som du har uppenbarat i din bok eller som du har lärt någon av din skapelse eller som du har hållit dolt för dig själv.',
+    kalla: 'Ahmad (3712). Autentisk enligt Imam al-Albani i Silsilah as-Sahihah (199)',
+    slutsats: 'Frasen "... eller som du har hållit dolt för dig själv" bevisar att Allah har namn som endast han känner till.',
+  },
+];
+
 // ── Main screen ───────────────────────────────────────────────
 export default function AsmaulHusnaScreen({ onBack, onMount }) {
   const { theme: T } = useTheme();
   const [viewMode, setViewMode] = useState('grid');
   const [selected, setSelected] = useState(null);
+  const [activeSection, setActiveSection] = useState(null); // 'qa' | 'lardomar' | 'hadith' | 'quiz'
+  const [activeQA, setActiveQA] = useState(null); // selected Q&A item
   const [favs, setFavs] = useState(loadFavs);
   const [filterFavs, setFilterFavs] = useState(false);
   const [search, setSearch] = useState('');
@@ -370,10 +385,15 @@ export default function AsmaulHusnaScreen({ onBack, onMount }) {
   }, [search]);
 
   useEffect(() => {
-    const handler = () => { if (selected) setSelected(null); else onBack(); };
+    const handler = () => {
+      if (activeQA) { setActiveQA(null); return; }
+      if (activeSection) { setActiveSection(null); return; }
+      if (selected) { setSelected(null); return; }
+      onBack();
+    };
     window.addEventListener('edgeSwipeBack', handler);
     return () => window.removeEventListener('edgeSwipeBack', handler);
-  }, [selected, onBack]);
+  }, [selected, activeSection, activeQA, onBack]);
 
   const toggleFav = useCallback((nr) => {
     setFavs(prev => {
@@ -411,6 +431,89 @@ export default function AsmaulHusnaScreen({ onBack, onMount }) {
           />
         )}
       </div>
+
+      {/* Q&A list screen */}
+      {activeSection === 'qa' && !activeQA && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, background: T.bg, display: 'flex', flexDirection: 'column', fontFamily: "'Inter',system-ui,sans-serif" }}>
+          <div style={{ padding: '18px 20px 8px' }}>
+            <button onClick={() => setActiveSection(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.accent, fontSize: 16, padding: 0, marginBottom: 16, WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke={T.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Tillbaka
+            </button>
+            <div style={{ fontSize: 28, fontWeight: 800, color: T.text, marginBottom: 20 }}>Frågor &amp; Svar</div>
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 32px' }}>
+            {QA_DATA.map((qa, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveQA(qa)}
+                style={{
+                  width: '100%', textAlign: 'left', background: T.card,
+                  border: `1px solid ${T.border}`, borderRadius: 18,
+                  padding: '16px 18px', marginBottom: 12,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 20, background: T.accent,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, fontSize: 15, fontWeight: 700, color: '#fff',
+                }}>{i + 1}</div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: T.text, lineHeight: 1.3 }}>{qa.fraga}</div>
+                  <div style={{ fontSize: 13, color: T.textMuted, marginTop: 3, lineHeight: 1.4 }}>{qa.subtitle}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Q&A detail screen */}
+      {activeQA && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 30, background: T.bg, display: 'flex', flexDirection: 'column', fontFamily: "'Inter',system-ui,sans-serif" }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px 48px' }}>
+            <button onClick={() => setActiveQA(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.accent, fontSize: 16, padding: 0, marginBottom: 20, WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke={T.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Tillbaka
+            </button>
+
+            <div style={{ fontSize: 26, fontWeight: 800, color: T.text, lineHeight: 1.3, marginBottom: 6 }}>{activeQA.fraga}</div>
+            <div style={{ fontSize: 14, color: T.textMuted, marginBottom: 24 }}>{activeQA.subtitle}</div>
+
+            {/* Fråga box */}
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.accent}`, borderRadius: 14, padding: '14px 16px', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: T.accent, marginBottom: 8 }}>Fråga</div>
+              <div style={{ fontSize: 15, color: T.text, lineHeight: 1.6 }}>{activeQA.fraga}</div>
+            </div>
+
+            {/* Svar box */}
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.accent}`, borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: T.accent, marginBottom: 8 }}>Svar</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: T.text, lineHeight: 1.5 }}>{activeQA.svar_kort}</div>
+            </div>
+
+            {activeQA.forklaring && (
+              <div style={{ fontSize: 15, color: T.text, lineHeight: 1.75, marginBottom: 20 }}>{activeQA.forklaring}</div>
+            )}
+
+            {activeQA.citat && (
+              <div style={{ background: T.isDark ? 'rgba(45,139,120,0.12)' : 'rgba(36,100,93,0.07)', border: `1px solid ${T.accent}30`, borderRadius: 14, padding: '16px 18px', marginBottom: 10 }}>
+                <div style={{ fontSize: 15, color: T.text, lineHeight: 1.8, fontStyle: 'italic' }}>"{activeQA.citat}"</div>
+              </div>
+            )}
+
+            {activeQA.kalla && (
+              <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 20, lineHeight: 1.5 }}>[{activeQA.kalla}]</div>
+            )}
+
+            {activeQA.slutsats && (
+              <div style={{ fontSize: 15, color: T.text, lineHeight: 1.75 }}>{activeQA.slutsats}</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* List screen */}
       <div style={{ display: selected ? 'none' : 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -473,6 +576,7 @@ export default function AsmaulHusnaScreen({ onBack, onMount }) {
             },
             {
               label: 'Q&A',
+              onClick: () => setActiveSection('qa'),
               icon: (
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/>
@@ -503,7 +607,7 @@ export default function AsmaulHusnaScreen({ onBack, onMount }) {
           ].map(item => (
             <button
               key={item.label}
-              onClick={() => {}} // placeholder
+              onClick={() => item.onClick ? item.onClick() : {}} // placeholder
               style={{
                 background: T.card, border: `1px solid ${T.border}`,
                 borderRadius: 18, padding: '14px 8px 12px',
