@@ -11,9 +11,6 @@ function saveFavs(set) {
   try { localStorage.setItem(FAV_KEY, JSON.stringify([...set])); } catch {}
 }
 
-// Single shared Audio instance — never re-created, no per-card <audio> elements
-const sharedAudio = new Audio();
-
 function Heart({ filled, size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24"
@@ -37,14 +34,54 @@ function Spinner({ size = 11, color = 'currentColor' }) {
   );
 }
 
-function PlayIcon({ size }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>;
-}
-function PauseIcon({ size }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>;
+// One shared audio ref — passed down so all views use the same element
+function useAudioPlayer() {
+  const audioRef = useRef(null);
+  const [playingNr, setPlayingNr] = useState(null);
+  const [loadingNr, setLoadingNr] = useState(null);
+
+  const play = useCallback((nr) => {
+    // If same nr — pause/stop
+    if (playingNr === nr) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setPlayingNr(null);
+      setLoadingNr(null);
+      return;
+    }
+    // Stop current
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setPlayingNr(null);
+    setLoadingNr(nr);
+    // The <audio> element will handle the rest via onCanPlay
+    audioRef.current.src = `/audio/${nr}.mp3`;
+  }, [playingNr]);
+
+  const onCanPlay = useCallback(() => {
+    if (loadingNr == null) return;
+    const nr = loadingNr;
+    audioRef.current.play()
+      .then(() => { setPlayingNr(nr); setLoadingNr(null); })
+      .catch(() => { setLoadingNr(null); });
+  }, [loadingNr]);
+
+  const onEnded = useCallback(() => {
+    setPlayingNr(null);
+    setLoadingNr(null);
+  }, []);
+
+  const onError = useCallback(() => {
+    setPlayingNr(null);
+    setLoadingNr(null);
+  }, []);
+
+  return { audioRef, playingNr, loadingNr, play, onCanPlay, onEnded, onError };
 }
 
-// GridCard — memo so it only re-renders when its own props change
+// ── Grid card ─────────────────────────────────────────────────
 const GridCard = memo(function GridCard({ name, onPress, isFav, onToggleFav, T, playingNr, loadingNr, onPlay }) {
   const playing = playingNr === name.nr;
   const loading = loadingNr === name.nr;
@@ -101,15 +138,19 @@ const GridCard = memo(function GridCard({ name, onPress, isFav, onToggleFav, T, 
             WebkitTapHighlightColor: 'transparent', transition: 'all .15s',
           }}
         >
-          {loading ? <Spinner size="11" color={playing ? '#fff' : T.accent} />
-            : playing ? <PauseIcon size="11" /> : <PlayIcon size="11" />}
+          {loading
+            ? <Spinner size="11" color={T.accent} />
+            : playing
+              ? <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              : <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+          }
         </button>
       </button>
     </div>
   );
 });
 
-// ListRow — memo so it only re-renders when its own props change
+// ── List row ──────────────────────────────────────────────────
 const ListRow = memo(function ListRow({ name, onPress, isFav, onToggleFav, T, playingNr, loadingNr, onPlay }) {
   const playing = playingNr === name.nr;
   const loading = loadingNr === name.nr;
@@ -154,8 +195,12 @@ const ListRow = memo(function ListRow({ name, onPress, isFav, onToggleFav, T, pl
           WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center', flexShrink: 0,
         }}
       >
-        {loading ? <Spinner size="15" color={T.accent} />
-          : playing ? <PauseIcon size="15" /> : <PlayIcon size="15" />}
+        {loading
+          ? <Spinner size="15" color={T.accent} />
+          : playing
+            ? <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            : <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        }
       </button>
 
       <button
@@ -172,7 +217,7 @@ const ListRow = memo(function ListRow({ name, onPress, isFav, onToggleFav, T, pl
   );
 });
 
-// Detail screen
+// ── Detail screen ─────────────────────────────────────────────
 function DetailScreen({ name, onBack, isFav, onToggleFav, T, playingNr, loadingNr, onPlay }) {
   const playing = playingNr === name.nr;
   const loading = loadingNr === name.nr;
@@ -213,8 +258,12 @@ function DetailScreen({ name, onBack, isFav, onToggleFav, T, playingNr, loadingN
             color: playing ? '#fff' : T.accent,
             WebkitTapHighlightColor: 'transparent', transition: 'all .18s',
           }}>
-            {loading ? <Spinner size="15" color={playing ? '#fff' : T.accent} />
-              : playing ? <PauseIcon size="15" /> : <PlayIcon size="15" />}
+            {loading
+              ? <Spinner size="15" color={T.accent} />
+              : playing
+                ? <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                : <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            }
             {loading ? 'Laddar...' : playing ? 'Pausar' : 'Lyssna'}
           </button>
         </div>
@@ -262,7 +311,7 @@ function DetailScreen({ name, onBack, isFav, onToggleFav, T, playingNr, loadingN
   );
 }
 
-// Main screen
+// ── Main screen ───────────────────────────────────────────────
 export default function AsmaulHusnaScreen({ onBack, onMount }) {
   const { theme: T } = useTheme();
   const [viewMode, setViewMode] = useState('grid');
@@ -271,52 +320,11 @@ export default function AsmaulHusnaScreen({ onBack, onMount }) {
   const [filterFavs, setFilterFavs] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [playingNr, setPlayingNr] = useState(null);
-  const [loadingNr, setLoadingNr] = useState(null);
+
+  // Audio state
+  const { audioRef, playingNr, loadingNr, play, onCanPlay, onEnded, onError } = useAudioPlayer();
 
   useEffect(() => { onMount?.(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Wire shared audio events once
-  useEffect(() => {
-    const onEnded = () => setPlayingNr(null);
-    sharedAudio.addEventListener('ended', onEnded);
-    return () => {
-      sharedAudio.removeEventListener('ended', onEnded);
-      sharedAudio.pause();
-    };
-  }, []);
-
-  const handlePlay = useCallback((nr) => {
-    if (playingNr === nr) {
-      sharedAudio.pause();
-      sharedAudio.currentTime = 0;
-      setPlayingNr(null);
-      setLoadingNr(null);
-    } else {
-      sharedAudio.pause();
-      setLoadingNr(nr);
-      setPlayingNr(null);
-
-      // Remove any previous one-shot listeners
-      sharedAudio.oncanplay = null;
-      sharedAudio.onerror = null;
-
-      sharedAudio.src = `/audio/${nr}.mp3`;
-      sharedAudio.load();
-
-      sharedAudio.oncanplay = () => {
-        sharedAudio.oncanplay = null;
-        sharedAudio.play()
-          .then(() => { setPlayingNr(nr); setLoadingNr(null); })
-          .catch(() => setLoadingNr(null));
-      };
-
-      sharedAudio.onerror = () => {
-        sharedAudio.onerror = null;
-        setLoadingNr(null);
-      };
-    }
-  }, [playingNr]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 120);
@@ -352,80 +360,90 @@ export default function AsmaulHusnaScreen({ onBack, onMount }) {
     });
   }, [debouncedSearch, filterFavs, favs, searchIndex]);
 
-  if (selected) return (
-    <DetailScreen
-      name={selected} onBack={() => setSelected(null)}
-      isFav={favs.has(selected.nr)} onToggleFav={() => toggleFav(selected.nr)}
-      T={T} playingNr={playingNr} loadingNr={loadingNr} onPlay={handlePlay}
-    />
-  );
-
   return (
     <div style={{ background: T.bg, minHeight: '100%', display: 'flex', flexDirection: 'column', fontFamily: "'Inter',system-ui,sans-serif" }}>
-      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      {/* Single shared audio element — always mounted */}
+      <audio
+        ref={audioRef}
+        onCanPlay={onCanPlay}
+        onEnded={onEnded}
+        onError={onError}
+      />
 
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: T.bg, borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 10px' }}>
-          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.accent, fontSize: 22, padding: '2px 8px 2px 0', WebkitTapHighlightColor: 'transparent', fontWeight: 300, lineHeight: 1 }}>‹</button>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: T.text, lineHeight: 1 }}>Allahs 99 namn</div>
-            <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>أسماء الله الحسنى</div>
+      {selected ? (
+        <DetailScreen
+          name={selected} onBack={() => setSelected(null)}
+          isFav={favs.has(selected.nr)} onToggleFav={() => toggleFav(selected.nr)}
+          T={T} playingNr={playingNr} loadingNr={loadingNr} onPlay={play}
+        />
+      ) : (
+        <>
+          <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+
+          <div style={{ position: 'sticky', top: 0, zIndex: 20, background: T.bg, borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 10px' }}>
+              <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.accent, fontSize: 22, padding: '2px 8px 2px 0', WebkitTapHighlightColor: 'transparent', fontWeight: 300, lineHeight: 1 }}>‹</button>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: T.text, lineHeight: 1 }}>Allahs 99 namn</div>
+                <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>أسماء الله الحسنى</div>
+              </div>
+              <button onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: '7px 9px', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center' }}>
+                {viewMode === 'grid' ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round">
+                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            <div style={{ padding: '0 16px 10px', display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: T.bgSecondary || T.bg, borderRadius: 12, padding: '8px 12px', border: `1px solid ${T.border}` }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Sök namn..." style={{ background: 'none', border: 'none', outline: 'none', fontSize: 16, color: T.text, flex: 1, fontFamily: "'Inter',system-ui,sans-serif" }} />
+                {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.textMuted, fontSize: 17, padding: 0, lineHeight: 1 }}>×</button>}
+              </div>
+              <button onClick={() => setFilterFavs(f => !f)} style={{ background: filterFavs ? '#e53e3e' : T.card, border: `1px solid ${filterFavs ? '#e53e3e' : T.border}`, borderRadius: 12, padding: '8px 12px', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: filterFavs ? '#fff' : T.textMuted, transition: 'all .18s' }}>
+                <Heart filled={filterFavs} size={14} />
+                {favs.size > 0 && <span>{favs.size}</span>}
+              </button>
+            </div>
           </div>
-          <button onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: '7px 9px', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center' }}>
-            {viewMode === 'grid' ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round">
-                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-              </svg>
+
+          {(search || filterFavs) && filtered.length < names.length && (
+            <div style={{ padding: '6px 16px 0', fontSize: 12, color: T.textMuted }}>Visar {filtered.length} av {names.length} namn</div>
+          )}
+
+          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24, animation: 'fadeUp .2s ease both' }}>
+            {filtered.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '64px 20px', color: T.textMuted, fontSize: 15 }}>
+                {filterFavs ? 'Inga favoriter ännu.' : 'Inga namn hittades.'}
+              </div>
+            ) : viewMode === 'grid' ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, padding: '14px 16px' }}>
+                {filtered.map(n => (
+                  <GridCard key={n.nr} name={n} onPress={() => setSelected(n)}
+                    isFav={favs.has(n.nr)} onToggleFav={() => toggleFav(n.nr)} T={T}
+                    playingNr={playingNr} loadingNr={loadingNr} onPlay={play} />
+                ))}
+              </div>
             ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round">
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-              </svg>
+              <div style={{ paddingTop: 4 }}>
+                {filtered.map(n => (
+                  <ListRow key={n.nr} name={n} onPress={() => setSelected(n)}
+                    isFav={favs.has(n.nr)} onToggleFav={() => toggleFav(n.nr)} T={T}
+                    playingNr={playingNr} loadingNr={loadingNr} onPlay={play} />
+                ))}
+              </div>
             )}
-          </button>
-        </div>
-
-        <div style={{ padding: '0 16px 10px', display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: T.bgSecondary || T.bg, borderRadius: 12, padding: '8px 12px', border: `1px solid ${T.border}` }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Sök namn..." style={{ background: 'none', border: 'none', outline: 'none', fontSize: 16, color: T.text, flex: 1, fontFamily: "'Inter',system-ui,sans-serif" }} />
-            {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.textMuted, fontSize: 17, padding: 0, lineHeight: 1 }}>×</button>}
           </div>
-          <button onClick={() => setFilterFavs(f => !f)} style={{ background: filterFavs ? '#e53e3e' : T.card, border: `1px solid ${filterFavs ? '#e53e3e' : T.border}`, borderRadius: 12, padding: '8px 12px', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: filterFavs ? '#fff' : T.textMuted, transition: 'all .18s' }}>
-            <Heart filled={filterFavs} size={14} />
-            {favs.size > 0 && <span>{favs.size}</span>}
-          </button>
-        </div>
-      </div>
-
-      {(search || filterFavs) && filtered.length < names.length && (
-        <div style={{ padding: '6px 16px 0', fontSize: 12, color: T.textMuted }}>Visar {filtered.length} av {names.length} namn</div>
+        </>
       )}
-
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24, animation: 'fadeUp .2s ease both' }}>
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '64px 20px', color: T.textMuted, fontSize: 15 }}>
-            {filterFavs ? 'Inga favoriter ännu.' : 'Inga namn hittades.'}
-          </div>
-        ) : viewMode === 'grid' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, padding: '14px 16px' }}>
-            {filtered.map(n => (
-              <GridCard key={n.nr} name={n} onPress={() => setSelected(n)}
-                isFav={favs.has(n.nr)} onToggleFav={() => toggleFav(n.nr)} T={T}
-                playingNr={playingNr} loadingNr={loadingNr} onPlay={handlePlay} />
-            ))}
-          </div>
-        ) : (
-          <div style={{ paddingTop: 4 }}>
-            {filtered.map(n => (
-              <ListRow key={n.nr} name={n} onPress={() => setSelected(n)}
-                isFav={favs.has(n.nr)} onToggleFav={() => toggleFav(n.nr)} T={T}
-                playingNr={playingNr} loadingNr={loadingNr} onPlay={handlePlay} />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
