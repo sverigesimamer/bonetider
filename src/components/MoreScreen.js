@@ -328,7 +328,7 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView, ma
     setView('booking-admin-login');
   };
 
-  if (view === 'asmaul-husna') return <AsmaulHusnaScreen onBack={() => setView('menu')} />;
+  if (view === 'asmaul-husna') return <AsmaulHusnaScreen onBack={() => { onTabBarShow?.(); setView('menu'); }} onMount={() => onTabBarHide?.()} />;
   if (view === 'settings') return <SettingsScreen onBack={() => setView('menu')} />;
   if (view === 'ebooks')   return <EbooksScreen onReaderOpen={() => {}} onReaderClose={() => {}} resetToLibrary={false} onTabBarHide={onTabBarHide} onTabBarShow={onTabBarShow} onBack={() => setView('menu')} />;
   if (view === 'about')    return <AboutScreen onBack={() => setView('menu')} />;

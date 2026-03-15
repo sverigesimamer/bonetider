@@ -328,13 +328,15 @@ function DetailScreen({ name, onBack, isFav, onToggleFav, T }) {
 }
 
 // ── Main screen ───────────────────────────────────────────────
-export default function AsmaulHusnaScreen({ onBack }) {
+export default function AsmaulHusnaScreen({ onBack, onMount }) {
   const { theme: T } = useTheme();
   const [viewMode, setViewMode] = useState('grid');
   const [selected, setSelected] = useState(null);
   const [favs, setFavs] = useState(loadFavs);
   const [filterFavs, setFilterFavs] = useState(false);
   const [search, setSearch] = useState('');
+
+  useEffect(() => { onMount?.(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const handler = () => { if (selected) setSelected(null); else onBack(); };
