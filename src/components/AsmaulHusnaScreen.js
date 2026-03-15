@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import names from '../data/asmaul_husna.json';
 
@@ -335,8 +335,15 @@ export default function AsmaulHusnaScreen({ onBack, onMount }) {
   const [favs, setFavs] = useState(loadFavs);
   const [filterFavs, setFilterFavs] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => { onMount?.(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounce: update actual search query 120ms after typing stops
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 120);
+    return () => clearTimeout(t);
+  }, [search]);
 
   useEffect(() => {
     const handler = () => { if (selected) setSelected(null); else onBack(); };
@@ -353,17 +360,27 @@ export default function AsmaulHusnaScreen({ onBack, onMount }) {
     });
   }, []);
 
-  const filtered = names.filter(n => {
-    if (filterFavs && !favs.has(n.nr)) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return n.transliteration.toLowerCase().includes(q) ||
-             n.swedish.toLowerCase().includes(q) ||
-             n.arabic.includes(search) ||
-             String(n.nr) === search.trim();
-    }
-    return true;
-  });
+  // Pre-built search index — computed once on mount, not on every keystroke
+  const searchIndex = useMemo(() => names.map(n => ({
+    blob: [
+      n.transliteration,
+      n.swedish,
+      n.arabic,
+      n.forklaring || '',
+      n.koranvers_svenska || '',
+      String(n.nr),
+    ].join('\n').toLowerCase(),
+  })), []);
+
+  const filtered = useMemo(() => {
+    if (!debouncedSearch && !filterFavs) return names;
+    const q = debouncedSearch.toLowerCase();
+    return names.filter((n, i) => {
+      if (filterFavs && !favs.has(n.nr)) return false;
+      if (!debouncedSearch) return true;
+      return searchIndex[i].blob.includes(q) || n.arabic.includes(debouncedSearch);
+    });
+  }, [debouncedSearch, filterFavs, favs, searchIndex]);
 
   if (selected) return (
     <DetailScreen
