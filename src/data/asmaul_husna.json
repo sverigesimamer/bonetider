@@ -1,7 +1,7 @@
 [
   {
     "nr": 1,
-    "arabic": "اللَّهُ",
+    "arabic": "اللَّهُ",
     "transliteration": "Allah",
     "swedish": "Allah",
     "forklaring": "Detta är ett av Allahs unika namn som betecknar hans heliga väsen och omfattar alla hans andra vackra och fullkomliga namn och egenskaper. Han är den ende sanne guden, den som dyrkas och som förtjänar att dyrkas av hela skapelsen på grund av sina gudomliga egenskaper.",
@@ -13,7 +13,7 @@
   },
   {
     "nr": 2,
-    "arabic": "الرَّبُّ",
+    "arabic": "الرَّبُّ",
     "transliteration": "ar-Rabb",
     "swedish": "Herren",
     "forklaring": "Den som tar hand om och upprätthåller allt och alla. Ar-Rabb tar hand om sina tjänare – det vill säga alla människor och allt annat som Allah har skapat. Han styr allt som sker i världen, både stort och smått. Han ger oss allt vi behöver, både materiellt som mat och husrum, och immateriellt som kärlek och glädje. Han är Skaparen av allt som finns. Han skapade himlen, jorden och allt liv på dem. Han är den sanne Ägaren av allt och har fullständig kontroll över allting.",
@@ -49,7 +49,7 @@
   },
   {
     "nr": 5,
-    "arabic": "الرَّحْمَٰنُ",
+    "arabic": "الرَّحْمَٰنُ",
     "transliteration": "ar-Rahmān",
     "swedish": "Den Nåderike",
     "forklaring": "Allah är barmhärtig mot alla sina skapelser. Han skapade dem och försåg dem med allt de behöver för att leva. Han skänker dem mat, vatten, luft och allt annat som krävs för deras överlevnad.",
@@ -61,7 +61,7 @@
   },
   {
     "nr": 6,
-    "arabic": "الرَّحِيمُ",
+    "arabic": "الرَّحِيمُ",
     "transliteration": "ar-Rahīm",
     "swedish": "Den Barmhärtige",
     "forklaring": "Allah är nådig mot sina troende tjänare. Han vägleder dem till tron och skänker dem evig belöning i paradiset.",
@@ -73,7 +73,7 @@
   },
   {
     "nr": 7,
-    "arabic": "الْحَيُّ",
+    "arabic": "الْحَيُّ",
     "transliteration": "al-Hayy",
     "swedish": "Den Levande",
     "forklaring": "Han är den vars liv är absolut beständigt. Hans existens har varken början eller slut och påverkas inte av någon brist. Han lever ett fullkomligt liv, präglat av perfekta egenskaper. Namnet al-Hayy är ett bevis för att endast han är värd att dyrkas.",
@@ -85,7 +85,7 @@
   },
   {
     "nr": 8,
-    "arabic": "الْقَيُّومُ",
+    "arabic": "الْقَيُّومُ",
     "transliteration": "al-Qayyūm",
     "swedish": "Den Självbestående, den evige Vidmakthållaren",
     "forklaring": "Allah är den absolut oberoende. Han behöver varken något eller någon för att existera. Han är den som skapar, styr och upprätthåller allt i universum. Han förser oss med allt vi behöver för att leva, och vi är i allt helt beroende av honom.",
@@ -97,7 +97,7 @@
   },
   {
     "nr": 9,
-    "arabic": "الْأَوَّلُ",
+    "arabic": "الْأَوَّلُ",
     "transliteration": "al-Awwal",
     "swedish": "Den Förste",
     "forklaring": "Allah fanns innan allt annat. Han har alltid funnits och kommer alltid att finnas. Han har ingen början och inget slut. Han är den Evige.",
@@ -121,7 +121,7 @@
   },
   {
     "nr": 11,
-    "arabic": "الظَّاهِرُ",
+    "arabic": "الظَّاهِرُ",
     "transliteration": "adh-Dhāhir",
     "swedish": "Den Uppenbare, den Högste",
     "forklaring": "Allah är den som är över sin skapelse, upphöjd och överlägsen allt. Han är den Uppenbare som ingen kan undgå och den Högste som inget är över.",
@@ -157,7 +157,7 @@
   },
   {
     "nr": 14,
-    "arabic": "الْقُدُّوسُ",
+    "arabic": "الْقُدُّوسُ",
     "transliteration": "al-Quddūs",
     "swedish": "Den Helige",
     "forklaring": "Allah är fullkomlig och fri från alla brister. Han är upphöjd över allt som inte är värdigt honom och bortom allt som människor kan föreställa sig.",
@@ -169,7 +169,7 @@
   },
   {
     "nr": 15,
-    "arabic": "السُّبُّوحُ",
+    "arabic": "السُّبُّوحُ",
     "transliteration": "as-Subbūh",
     "swedish": "Den som är helt fri från brister, den Ärade",
     "forklaring": "Allah är fri från alla brister och allt som inte är värdigt honom. Han är fullkomlig och perfekt.",
@@ -181,7 +181,7 @@
   },
   {
     "nr": 16,
-    "arabic": "السَّلَامُ",
+    "arabic": "السَّلَامُ",
     "transliteration": "as-Salām",
     "swedish": "Den Felfrie, den som skänker frid",
     "forklaring": "Namnet as-Salām betyder att Allah är fullkomlig och fri från alla brister. Han är perfekt i allt han gör och begår aldrig orättvisa eller förtryck.",
@@ -205,7 +205,7 @@
   },
   {
     "nr": 18,
-    "arabic": "الْحَقُّ",
+    "arabic": "الْحَقُّ",
     "transliteration": "al-Haqq",
     "swedish": "Den absoluta Sanningen",
     "forklaring": "Allah är den som är sann i sin essens och i sin existens. Han är sann i sitt väsen, sina namn, sina egenskaper och sina handlingar.",
@@ -217,7 +217,7 @@
   },
   {
     "nr": 19,
-    "arabic": "الْمُتَكَبِّرُ",
+    "arabic": "الْمُتَكَبِّرُ",
     "transliteration": "al-Mutakabbir",
     "swedish": "Den Upphöjde, den som besitter all storhet",
     "forklaring": "Han är unik i sin storhet och makt. Allt är under hans kontroll. Hans storhet är inte arrogans eller överdrift, utan ett majestät som endast tillkommer honom.",
@@ -253,7 +253,7 @@
   },
   {
     "nr": 22,
-    "arabic": "الْعَلِيُّ",
+    "arabic": "الْعَلِيُّ",
     "transliteration": "al-ʿAliyy",
     "swedish": "Den Höge",
     "forklaring": "Namnen al-ʿAliyy, al-Aʿlā och al-Mutaʿāl visar att Allah är högt ovan sin skapelse och att han besitter all makt.",
@@ -277,7 +277,7 @@
   },
   {
     "nr": 24,
-    "arabic": "اللَّطِيفُ",
+    "arabic": "اللَّطِيفُ",
     "transliteration": "al-Latīf",
     "swedish": "Den Välvillige",
     "forklaring": "Allah är den som är god mot sina tjänare och vägleder dem till godhet och framgång på sätt de själva inte kan uppfatta fullt ut.",
@@ -373,7 +373,7 @@
   },
   {
     "nr": 32,
-    "arabic": "الْقَوِيُّ",
+    "arabic": "الْقَوِيُّ",
     "transliteration": "al-Qawiyy",
     "swedish": "Den Starke",
     "forklaring": "Han är den som äger all styrka. Ingens makt kan någonsin försvaga honom.",
@@ -421,7 +421,7 @@
   },
   {
     "nr": 36,
-    "arabic": "الْقَهَّارُ",
+    "arabic": "الْقَهَّارُ",
     "transliteration": "al-Qahhār",
     "swedish": "Den yttersta Härskaren",
     "forklaring": "Han utövar sin oinskränkta makt över alla sina tjänare, och ingen kan avvärja hans beslut.",
@@ -469,7 +469,7 @@
   },
   {
     "nr": 40,
-    "arabic": "الْجَبَّارُ",
+    "arabic": "الْجَبَّارُ",
     "transliteration": "al-Jabbār",
     "swedish": "Den Oemotståndlige",
     "forklaring": "Han är den som inte kan hindras och som tvingar sin vilja igenom. Han är också den som lagar det som är sönder och tröstar de sörjande.",
@@ -493,7 +493,7 @@
   },
   {
     "nr": 42,
-    "arabic": "الْخَلَّاقُ",
+    "arabic": "الْخَلَّاقُ",
     "transliteration": "al-Khallāq",
     "swedish": "Den storslagne Skaparen",
     "forklaring": "Han är den som ständigt skapar, om och om igen, på det mest fulländade sättet. Hans skapande är outtömligt.",
@@ -517,7 +517,7 @@
   },
   {
     "nr": 44,
-    "arabic": "الْمُصَوِّرُ",
+    "arabic": "الْمُصَوِّرُ",
     "transliteration": "al-Musawwir",
     "swedish": "Formgivaren",
     "forklaring": "Han är den som ger skapelsen dess skepnader och utseenden när de ännu inte hade någon form. Han skapar, låter det träda fram ur intet och formar sedan varje varelse på det sätt han vill, i enlighet med sin visdom. Han fastställer först vad som ska skapas, därefter låter han det träda fram från intet, och sedan formar han det i den skepnad eller på det sätt han vill.",
@@ -565,7 +565,7 @@
   },
   {
     "nr": 48,
-    "arabic": "الْوَلِيُّ",
+    "arabic": "الْوَلِيُّ",
     "transliteration": "al-Waliyy",
     "swedish": "Beskyddaren",
     "forklaring": "Han är den som tar hand om sin skapelse och skyddar dem. De troende vänder sig till honom och förlitar sig på honom i tider av svårigheter och lättnad, i glädje och i sorg. Han stödjer och hjälper dem, och han är nära sina tjänare.",
@@ -589,7 +589,7 @@
   },
   {
     "nr": 50,
-    "arabic": "النَّصِيرُ",
+    "arabic": "النَّصِيرُ",
     "transliteration": "an-Nasīr",
     "swedish": "Hjälparen",
     "forklaring": "Han är den som ständigt hjälper sina sändebud, profeter och nära tjänare – både i detta liv och på den dag då vittnena reser sig för att vittna. Den som verkligen blir segerrik är endast den som Allah ger seger åt, för ingen annan kan ge seger än han. De troende har ingen annan hjälpare eller bevarare än Allah.",
@@ -625,7 +625,7 @@
   },
   {
     "nr": 53,
-    "arabic": "الصَّمَدُ",
+    "arabic": "الصَّمَدُ",
     "transliteration": "al-Samad",
     "swedish": "Den Suveräne, den som skapelsen vänder sig till",
     "forklaring": "Han är den fullkomlige i sin kunskap, styrka, vishet, kraft, sitt herravälde och alla andra egenskaper. Allt i skapelsen vänder sig till honom i behov och nöd, medan han själv är helt oberoende av allt och alla.",
@@ -637,7 +637,7 @@
   },
   {
     "nr": 54,
-    "arabic": "الرَّازِقُ",
+    "arabic": "الرَّازِقُ",
     "transliteration": "ar-Rāziq",
     "swedish": "Försörjaren",
     "forklaring": "Allah är den som garanterar försörjning och skänker sina tjänare det de behöver för att leva. Han ger av sin försörjning till alla, troende som icke-troende.",
@@ -649,7 +649,7 @@
   },
   {
     "nr": 55,
-    "arabic": "الرَّزَّاقُ",
+    "arabic": "الرَّزَّاقُ",
     "transliteration": "ar-Razzāq",
     "swedish": "Den ständige Försörjaren",
     "forklaring": "Allah är den som utan avbrott försörjer allt levande. Han ger rikligt, generöst och ständigt – hans försörjning tar aldrig slut.",
@@ -661,7 +661,7 @@
   },
   {
     "nr": 56,
-    "arabic": "الْفَتَّاحُ",
+    "arabic": "الْفَتَّاحُ",
     "transliteration": "al-Fattāh",
     "swedish": "Skiljedomaren, den som ger seger",
     "forklaring": "Han är den som dömer mellan sina tjänare med rättvisa och som skänker seger till dem han vill.",
@@ -709,7 +709,7 @@
   },
   {
     "nr": 60,
-    "arabic": "الرَّءُوفُ",
+    "arabic": "الرَّءُوفُ",
     "transliteration": "ar-Raʾūf",
     "swedish": "Den Förbarmande",
     "forklaring": "Han är den som visar den högsta graden av barmhärtighet.",
@@ -733,7 +733,7 @@
   },
   {
     "nr": 62,
-    "arabic": "الْبَرُّ",
+    "arabic": "الْبَرُّ",
     "transliteration": "al-Barr",
     "swedish": "Den Gode",
     "forklaring": "Han är den som gång på gång skänker sina tjänare alla former av gott.",
@@ -769,7 +769,7 @@
   },
   {
     "nr": 65,
-    "arabic": "الْغَفَّارُ",
+    "arabic": "الْغَفَّارُ",
     "transliteration": "al-Ghaffār",
     "swedish": "Den konstant Förlåtande",
     "forklaring": "Han är den som förlåter sina tjänare gång på gång.",
@@ -781,7 +781,7 @@
   },
   {
     "nr": 66,
-    "arabic": "الْعَفُوُّ",
+    "arabic": "الْعَفُوُّ",
     "transliteration": "al-ʿAfuww",
     "swedish": "Benådaren",
     "forklaring": "Han är den som benådar och helt utplånar synder, så att de inte lämnar några spår efter sig.",
@@ -793,7 +793,7 @@
   },
   {
     "nr": 67,
-    "arabic": "التَّوَّابُ",
+    "arabic": "التَّوَّابُ",
     "transliteration": "at-Tawwāb",
     "swedish": "Den som vägleder till ånger och godtar den",
     "forklaring": "Han är den som gång på gång öppnar vägarna till ånger för sina tjänare.",
@@ -829,7 +829,7 @@
   },
   {
     "nr": 70,
-    "arabic": "الشَّاكِرُ",
+    "arabic": "الشَّاكِرُ",
     "transliteration": "ash-Shākir",
     "swedish": "Den Uppskattande",
     "forklaring": "Han är den som erkänner sina tjänares gärningar och belönar dem.",
@@ -841,7 +841,7 @@
   },
   {
     "nr": 71,
-    "arabic": "الشَّكُورُ",
+    "arabic": "الشَّكُورُ",
     "transliteration": "ash-Shakūr",
     "swedish": "Den mycket Uppskattande",
     "forklaring": "Han är den som ger riklig belöning för små gärningar.",
@@ -853,7 +853,7 @@
   },
   {
     "nr": 72,
-    "arabic": "السَّمِيعُ",
+    "arabic": "السَّمِيعُ",
     "transliteration": "as-Samīʿ",
     "swedish": "Den Allhörande",
     "forklaring": "Han är den som hör allt – varje ord, varje ljud, varje suck.",
@@ -877,7 +877,7 @@
   },
   {
     "nr": 74,
-    "arabic": "الشَّهِيدُ",
+    "arabic": "الشَّهِيدُ",
     "transliteration": "ash-Shahīd",
     "swedish": "Vittnet, den Närvarande",
     "forklaring": "Han är den som aldrig är frånvarande, utan alltid närvarande och vittnande.",
@@ -889,7 +889,7 @@
   },
   {
     "nr": 75,
-    "arabic": "الرَّقِيبُ",
+    "arabic": "الرَّقِيبُ",
     "transliteration": "ar-Raqīb",
     "swedish": "Den Övervakande",
     "forklaring": "Han är den som alltid övervakar och observerar sin skapelse.",
@@ -949,7 +949,7 @@
   },
   {
     "nr": 80,
-    "arabic": "الْغَنِيُّ",
+    "arabic": "الْغَنِيُّ",
     "transliteration": "al-Ghaniyy",
     "swedish": "Den Självtillräcklige, den Oberoende",
     "forklaring": "Han är den som inte behöver någon, medan alla behöver honom.",
@@ -961,7 +961,7 @@
   },
   {
     "nr": 81,
-    "arabic": "الْوَهَّابُ",
+    "arabic": "الْوَهَّابُ",
     "transliteration": "al-Wahhāb",
     "swedish": "Den ständigt Givande",
     "forklaring": "Han är den som ständigt skänker sin skapelse gåvor och välsignelser.",
@@ -1009,7 +1009,7 @@
   },
   {
     "nr": 85,
-    "arabic": "الْمُقَدِّمُ",
+    "arabic": "الْمُقَدِّمُ",
     "transliteration": "al-Muqaddim",
     "swedish": "Den som för fram",
     "forklaring": "Han är den som för fram och sätter främst vem han vill av sina tjänare.",
@@ -1021,7 +1021,7 @@
   },
   {
     "nr": 86,
-    "arabic": "الْمُؤَخِّرُ",
+    "arabic": "الْمُؤَخِّرُ",
     "transliteration": "al-Muʾakhkhir",
     "swedish": "Den som håller tillbaka",
     "forklaring": "Han är den som i sin visdom håller tillbaka och fördröjer det han vill.",
@@ -1033,7 +1033,7 @@
   },
   {
     "nr": 87,
-    "arabic": "الرَّفِيقُ",
+    "arabic": "الرَّفِيقُ",
     "transliteration": "ar-Rafīq",
     "swedish": "Den Varsamme",
     "forklaring": "Allah är varsam i sina handlingar. Han skapade sin skapelse steg för steg, i enlighet med sin visdom.",
@@ -1045,7 +1045,7 @@
   },
   {
     "nr": 88,
-    "arabic": "الْمَنَّانُ",
+    "arabic": "الْمَنَّانُ",
     "transliteration": "al-Mannān",
     "swedish": "Den som skänker rikligt",
     "forklaring": "Han är den som översköljer sin skapelse med gåvor och välsignelser, gång på gång.",
@@ -1081,7 +1081,7 @@
   },
   {
     "nr": 91,
-    "arabic": "السَّتِيرُ",
+    "arabic": "السَّتِيرُ",
     "transliteration": "as-Sittīr",
     "swedish": "Den som döljer",
     "forklaring": "Han är den som döljer sina tjänares brister och synder, och inte avslöjar dem inför andra.",
@@ -1093,7 +1093,7 @@
   },
   {
     "nr": 92,
-    "arabic": "الدَّيَّانُ",
+    "arabic": "الدَّيَّانُ",
     "transliteration": "ad-Dayyān",
     "swedish": "Återgäldaren, den som håller räkenskapen",
     "forklaring": "Allah är den som slutligen håller räkenskapen med sin skapelse. Han återgäldar varje själ för vad den har gjort, gott som ont, och ingen handling går honom förbi. Ingen kan undgå hans dom.",
@@ -1105,7 +1105,7 @@
   },
   {
     "nr": 93,
-    "arabic": "الشَّافِي",
+    "arabic": "الشَّافِي",
     "transliteration": "ash-Shāfī",
     "swedish": "Den som skänker bot",
     "forklaring": "Allah är den som botar alla sjukdomar, både de inre och de yttre.",
@@ -1117,7 +1117,7 @@
   },
   {
     "nr": 94,
-    "arabic": "السَّيِّدُ",
+    "arabic": "السَّيِّدُ",
     "transliteration": "as-Sayyid",
     "swedish": "Den högsta Herren, den fullkomlige Mästaren",
     "forklaring": "Han äger hela skapelsen, och hela skapelsen är hans tjänare.",
@@ -1141,7 +1141,7 @@
   },
   {
     "nr": 96,
-    "arabic": "الْحَيِيُّ",
+    "arabic": "الْحَيِيُّ",
     "transliteration": "al-Hayiyy",
     "swedish": "Den Blygsamme",
     "forklaring": "Han är så ädel att han har blygsamhet inför att lämna sin tjänare tomhänt när denne lyfter sina händer i bön till honom.",
@@ -1153,7 +1153,7 @@
   },
   {
     "nr": 97,
-    "arabic": "الطَّيِّبُ",
+    "arabic": "الطَّيِّبُ",
     "transliteration": "at-Tayyib",
     "swedish": "Den Gode",
     "forklaring": "Allah är höjd över alla brister och fel. Inget kommer från honom annat än det som är gott.",

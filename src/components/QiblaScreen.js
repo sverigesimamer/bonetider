@@ -38,7 +38,7 @@ function CalibrationOverlay({ progress, onDismiss, T }) {
         }
 
         .phone-on-path {
-          offset-path: path('M 100,100 C 100,50 170,50 170,100 C 170,150 100,150 100,200 C 100,150 30,150 30,100 C 30,50 100,50 100,100');
+          offset-path: path('M 100,110 C 140,110 170,80 170,55 C 170,30 140,10 100,10 C 60,10 30,30 30,55 C 30,80 60,110 100,110 C 140,110 170,140 170,165 C 170,190 140,210 100,210 C 60,210 30,190 30,165 C 30,140 60,110 100,110');
           animation: fig8 3s cubic-bezier(0.4,0,0.6,1) infinite;
           offset-rotate: 0deg;
         }
@@ -66,7 +66,7 @@ function CalibrationOverlay({ progress, onDismiss, T }) {
         <svg width="200" height="220" viewBox="0 0 200 220" style={{ position: 'absolute', inset: 0 }}>
           {/* Figure-8 dashed path guide */}
           <path
-            d="M 100,110 C 100,60 170,60 170,110 C 170,160 100,160 100,210 C 100,160 30,160 30,110 C 30,60 100,60 100,110"
+            d="M 100,110 C 140,110 170,80 170,55 C 170,30 140,10 100,10 C 60,10 30,30 30,55 C 30,80 60,110 100,110 C 140,110 170,140 170,165 C 170,190 140,210 100,210 C 60,210 30,190 30,165 C 30,140 60,110 100,110"
             fill="none"
             stroke={T.accent}
             strokeWidth="1.5"
@@ -92,7 +92,7 @@ function CalibrationOverlay({ progress, onDismiss, T }) {
           {/* Hidden path for animateMotion reference */}
           <defs>
             <path id="fig8path"
-              d="M 100,110 C 100,60 170,60 170,110 C 170,160 100,160 100,210 C 100,160 30,160 30,110 C 30,60 100,60 100,110"
+              d="M 100,110 C 140,110 170,80 170,55 C 170,30 140,10 100,10 C 60,10 30,30 30,55 C 30,80 60,110 100,110 C 140,110 170,140 170,165 C 170,190 140,210 100,210 C 60,210 30,190 30,165 C 30,140 60,110 100,110"
             />
           </defs>
 
