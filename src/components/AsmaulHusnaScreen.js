@@ -458,6 +458,76 @@ export default function AsmaulHusnaScreen({ onBack, onMount }) {
         <div style={{ padding: '6px 16px 0', fontSize: 12, color: T.textMuted }}>Visar {filtered.length} av {names.length} namn</div>
       )}
 
+      {/* Action shortcuts — Lärdomar, Q&A, Hadith, Quiz */}
+      {!search && !filterFavs && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, padding: '14px 16px 4px' }}>
+          {[
+            {
+              label: 'Lärdomar',
+              icon: (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                  <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+              ),
+            },
+            {
+              label: 'Q&A',
+              icon: (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              ),
+            },
+            {
+              label: 'Hadith',
+              icon: (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+              ),
+            },
+            {
+              label: 'Quiz',
+              icon: (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                  <circle cx="12" cy="17" r="0.5" fill={T.accent}/>
+                </svg>
+              ),
+            },
+          ].map(item => (
+            <button
+              key={item.label}
+              onClick={() => {}} // placeholder
+              style={{
+                background: T.card, border: `1px solid ${T.border}`,
+                borderRadius: 18, padding: '14px 8px 12px',
+                cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 8,
+                WebkitTapHighlightColor: 'transparent',
+                fontFamily: "'Inter',system-ui,sans-serif",
+              }}
+            >
+              <div style={{
+                width: 48, height: 48, borderRadius: 24,
+                background: `${T.accent}18`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {item.icon}
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24, animation: 'fadeUp .2s ease both' }}>
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '64px 20px', color: T.textMuted, fontSize: 15 }}>
