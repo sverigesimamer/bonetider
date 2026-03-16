@@ -120,8 +120,9 @@ function getBookedHours(bookings,iso,excludeId=null){
 function getAvailableStarts(bookings,iso,durationHours,excludeId=null){
   const booked=getBookedHours(bookings,iso,excludeId);
   const starts=[];
-  // Steg 0.5h, från OPEN_HOUR till CLOSE_HOUR-durationHours
-  for(let h=OPEN_HOUR;h<=CLOSE_HOUR-durationHours;h+=0.5){
+  // Only allow starts where the entire booking fits within OPEN_HOUR..CLOSE_HOUR
+  // i.e. startH >= OPEN_HOUR AND startH + durationHours <= CLOSE_HOUR
+  for(let h=OPEN_HOUR; h+durationHours<=CLOSE_HOUR; h+=0.5){
     if(isHourPast(iso,h,durationHours)) continue;
     const blocks=durationHours*2;
     let ok=true;
@@ -470,8 +471,8 @@ function TimeSlotPanel({bookings,date,isAdmin,durationHours,onSelectSlot,onClose
     let cursor=OPEN_HOUR;
     for(const block of merged){
       if(block.startH>cursor){
-        // Ledigt gap
-        for(let h=cursor;h<=block.startH-durationHours;h+=0.5){
+        // Ledigt gap — only show slots that end at or before CLOSE_HOUR
+        for(let h=cursor;h+durationHours<=block.startH;h+=0.5){
           if(!isHourPast(iso,h,durationHours))
             result.push({type:'available',startH:h,label:slotLabel(h,durationHours)});
         }
@@ -486,8 +487,8 @@ function TimeSlotPanel({bookings,date,isAdmin,durationHours,onSelectSlot,onClose
       });
       cursor=block.endH;
     }
-    // Lediga tider efter sista bokning
-    for(let h=cursor;h<=CLOSE_HOUR-durationHours;h+=0.5){
+    // Lediga tider efter sista bokning — only up to CLOSE_HOUR
+    for(let h=cursor;h+durationHours<=CLOSE_HOUR;h+=0.5){
       if(!isHourPast(iso,h,durationHours))
         result.push({type:'available',startH:h,label:slotLabel(h,durationHours)});
     }
