@@ -376,6 +376,7 @@ export default function AsmaulHusnaScreen({ onBack, onMount }) {
   const [filterFavs, setFilterFavs] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const listScrollRef = useRef(null);
 
   useEffect(() => { onMount?.(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
