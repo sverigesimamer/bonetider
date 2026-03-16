@@ -108,10 +108,11 @@ function getBookedHours(bookings,iso,excludeId=null){
   const blocks=new Set(); // varje block representerar 30 min, nyckel = startH*2
   active.forEach(b=>{
     const parts=b.time_slot.split('–');
-    const parseH=s=>{ const[hh,mm]=s.split(':').map(Number); return hh+(mm===30?0.5:0); };
+    // 00:00 as end time means midnight = hour 24
+    const parseH=s=>{ const[hh,mm]=s.split(':').map(Number); const h=hh+(mm===30?0.5:0); return h===0?24:h; };
     const startH=parseH(parts[0]);
     const endH=parseH(parts[1]);
-    const dur=b.duration_hours||(endH-startH);
+    const dur=b.duration_hours||(endH>startH?endH-startH:24-startH+endH);
     for(let i=0;i<dur*2;i++) blocks.add(startH*2+i);
   });
   return blocks;
@@ -159,7 +160,8 @@ function isHourPast(iso, startH, durationHours) {
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const startMinutes = Math.floor(startH) * 60 + (startH % 1 === 0 ? 0 : 30);
-  return nowMinutes >= startMinutes + 30;
+  // Block if slot has already started (no grace period)
+  return nowMinutes >= startMinutes;
 }
 
 /* ── UI primitives ── */
