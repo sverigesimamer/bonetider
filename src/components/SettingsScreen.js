@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef} from 'react';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { CALC_METHODS } from '../utils/prayerUtils';
@@ -178,9 +178,7 @@ export default function SettingsScreen({ onBack }) {
             WebkitTapHighlightColor:'transparent',
           }}>‹</button>
         )}
-        <div style={{ fontSize:24, fontWeight:800, color:T.text, letterSpacing:'-0.4px' }}>
-          Inställningar
-        </div>
+        <button onClick={() => window.dispatchEvent(new CustomEvent('scrollToTop'))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' }}><div style={{ fontSize:24, fontWeight:800, color:T.text, letterSpacing:'-0.4px' }}>Inställningar</div></button>
       </div>
 
       {/* PLATS */}

@@ -73,6 +73,22 @@ function Shell() {
     }
   }, [tab, showMonthly]);
 
+  // Listen for scroll-to-top and scroll-restore requests from child components
+  useEffect(() => {
+    const toTopHandler = () => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    const restoreHandler = (e) => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = e.detail?.top || 0;
+      }
+    };
+    window.addEventListener('scrollToTop', toTopHandler);
+    window.addEventListener('restoreScroll', restoreHandler);
+    return () => {
+      window.removeEventListener('scrollToTop', toTopHandler);
+      window.removeEventListener('restoreScroll', restoreHandler);
+    };
+  }, []);
+
   // Silent background location update on every app open.
   // Runs after 10 s if user has already granted GPS permission.
   // Only updates if new position is >30 km from cached location.

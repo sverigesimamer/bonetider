@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import SettingsScreen from './SettingsScreen';
 import AboutScreen from './AboutScreen';
@@ -180,6 +180,7 @@ function GridCard({ item, onPress, T, badge = 0, adminBadge = 0, pulse = false }
 }
 
 function SupportScreen({ onBack, T }) {
+  const scrollRef = useRef(null);
   useEffect(() => {
     const handler = () => onBack();
     window.addEventListener('edgeSwipeBack', handler);
@@ -195,21 +196,24 @@ function SupportScreen({ onBack, T }) {
   );
 
   return (
-    <div style={{ background: T.bg, minHeight: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif' }}>
+    <div ref={scrollRef} style={{ background: T.bg, minHeight: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif' }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '16px 16px 12px',
         paddingTop: 'max(16px, env(safe-area-inset-top))',
         borderBottom: `1px solid ${T.border}`,
-        background: T.bg, zIndex: 10,
+        background: T.bg, zIndex: 10, position: 'sticky', top: 0,
       }}>
         <button onClick={onBack} style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          color: T.accent, fontSize: 20, padding: '4px 8px 4px 0',
+          color: T.accent, fontSize: 22, padding: '4px 8px 4px 0',
+          lineHeight: 1, fontWeight: 300,
           WebkitTapHighlightColor: 'transparent',
         }}>‹</button>
-        <span style={{ fontSize: 18, fontWeight: 700, color: T.text }}>Stöd oss</span>
+        <button onClick={() => window.dispatchEvent(new CustomEvent('scrollToTop'))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' }}>
+          <span style={{ fontSize: 19, fontWeight: 800, color: T.text, letterSpacing: '-.3px' }}>Stöd oss</span>
+        </button>
       </div>
 
       {/* Intro text */}
@@ -315,27 +319,54 @@ function SupportScreen({ onBack, T }) {
 export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView, markVisitorSeen, markAdminSeen, activateForDevice, registerAdminDevice, bookingBadge = 0, visitorBadge = 0, adminBadge = 0 }) {
   const { theme: T } = useTheme();
   const [view, setView] = useState(initialView || 'menu');
+  const scrollRef = useRef(null);
+  const savedScrollRef = useRef(0);
+
+  // Save scroll position before leaving menu
+  const navigateTo = useCallback((newView) => {
+    // Save scroll position from nearest scrollable ancestor (App's scroll container)
+    if (scrollRef.current) {
+      let el = scrollRef.current.parentElement;
+      while (el && el.scrollTop === 0 && el !== document.body) el = el.parentElement;
+      savedScrollRef.current = el ? el.scrollTop : 0;
+    }
+    window.dispatchEvent(new CustomEvent('scrollToTop'));
+    setView(newView);
+  }, []);
+
+  // Restore scroll position when returning to menu
+  const backToMenu = useCallback(() => {
+    const savedPos = savedScrollRef.current;
+    setView('menu');
+    // Restore App-level scroll position
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent('restoreScroll', { detail: { top: savedPos } }));
+    });
+  }, []);
+
+  // Edge swipe on menu itself → go to previous tab (onBack from App)
+  const onBack = undefined; // MoreScreen has no parent back — edge swipe handled by App
 
   const handleOpenBooking = () => {
     markVisitorSeen();
     markAdminSeen();
-    setView('booking');
+    navigateTo('booking');
   };
 
   const handleOpenAdminLogin = () => {
     markVisitorSeen();
     markAdminSeen();
-    setView('booking-admin-login');
+    navigateTo('booking-admin-login');
   };
 
-  if (view === 'asmaul-husna') return <AsmaulHusnaScreen onBack={() => { onTabBarShow?.(); setView('menu'); }} onMount={() => onTabBarHide?.()} />;
-  if (view === 'settings') return <SettingsScreen onBack={() => setView('menu')} />;
-  if (view === 'ebooks')   return <EbooksScreen onReaderOpen={() => {}} onReaderClose={() => {}} resetToLibrary={false} onTabBarHide={onTabBarHide} onTabBarShow={onTabBarShow} onBack={() => setView('menu')} />;
-  if (view === 'about')    return <AboutScreen onBack={() => setView('menu')} />;
-  if (view === 'support')  return <SupportScreen onBack={() => setView('menu')} T={T} />;
+  if (view === 'asmaul-husna') return <AsmaulHusnaScreen onBack={() => { onTabBarShow?.(); backToMenu(); }} onMount={() => onTabBarHide?.()} />;
+  if (view === 'settings') return <SettingsScreen onBack={backToMenu} />;
+  if (view === 'ebooks')   return <EbooksScreen onReaderOpen={() => {}} onReaderClose={() => {}} resetToLibrary={false} onTabBarHide={onTabBarHide} onTabBarShow={onTabBarShow} onBack={backToMenu} />;
+  if (view === 'about')    return <AboutScreen onBack={backToMenu} />;
+  if (view === 'support')  return <SupportScreen onBack={backToMenu} T={T} />;
   if (view === 'booking' || view === 'booking-admin-login')
     return <BookingScreen
-      onBack={() => setView('menu')}
+      onBack={backToMenu}
       activateForDevice={activateForDevice}
       registerAdminDevice={registerAdminDevice}
       startAtAdminLogin={view === 'booking-admin-login'}
@@ -345,7 +376,7 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView, ma
     />;
 
   return (
-    <div style={{ background: T.bg, minHeight: '100%', fontFamily: 'system-ui, sans-serif' }}>
+    <div ref={scrollRef} style={{ background: T.bg, minHeight: '100%', fontFamily: 'system-ui, sans-serif' }}>
       <style>{`
         @keyframes cardPulse {
           0%   { box-shadow: 0 0 0 0px rgba(245,158,11,0.45); border-color: #f59e0b66; }
@@ -358,13 +389,18 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView, ma
           100% { transform: scale(1); }
         }
       `}</style>
-      <div style={{ padding: '20px 16px 12px', paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
+      <div style={{ padding: '20px 16px 12px', paddingTop: 'max(20px, env(safe-area-inset-top))', position: 'sticky', top: 0, zIndex: 20, background: T.bg, borderBottom: `1px solid ${T.border}` }}>
 
         {/* Header row: title + settings icon */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: T.text, letterSpacing: '-.4px' }}>
-            Visa mer
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 0 }}>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('scrollToTop'))}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' }}
+          >
+            <div style={{ fontSize: 26, fontWeight: 800, color: T.text, letterSpacing: '-.4px' }}>
+              Visa mer
+            </div>
+          </button>
           <button
             onClick={() => setView('settings')}
             style={{
@@ -380,8 +416,10 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView, ma
             <SettingsGearIcon color={T.textMuted} />
           </button>
         </div>
+      </div>
 
-        {/* Grid layout */}
+      {/* Grid layout */}
+      <div style={{ padding: '16px 16px 32px' }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
@@ -391,7 +429,7 @@ export default function MoreScreen({ onTabBarHide, onTabBarShow, initialView, ma
             <GridCard
               key={item.id}
               item={item}
-              onPress={item.id === 'booking' ? handleOpenBooking : () => setView(item.id)}
+              onPress={item.id === 'booking' ? handleOpenBooking : () => navigateTo(item.id)}
               T={T}
               badge={item.id === 'booking' ? visitorBadge : 0}
               adminBadge={item.id === 'booking' ? adminBadge : 0}

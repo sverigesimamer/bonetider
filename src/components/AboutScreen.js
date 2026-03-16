@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import IslamNuLogoTeal from '../icons/islamnu-logga-light.svg';
 
@@ -19,6 +19,7 @@ const SECTIONS = [
 
 export default function AboutScreen({ onBack }) {
   const { theme: T } = useTheme();
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     if (!onBack) return;
@@ -28,7 +29,7 @@ export default function AboutScreen({ onBack }) {
   }, [onBack]);
 
   return (
-    <div style={{ background: T.bg, minHeight: '100%', fontFamily: 'system-ui, sans-serif' }}>
+    <div ref={scrollRef} style={{ background: T.bg, minHeight: '100%', fontFamily: 'system-ui, sans-serif' }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
@@ -42,7 +43,7 @@ export default function AboutScreen({ onBack }) {
           padding: '4px 8px 4px 0', color: T.accent, fontSize: 22,
           lineHeight: 1, fontWeight: 300, WebkitTapHighlightColor: 'transparent',
         }}>‹</button>
-        <div style={{ fontSize: 19, fontWeight: 800, color: T.text, letterSpacing: '-.3px' }}>Om oss</div>
+        <button onClick={() => window.dispatchEvent(new CustomEvent('scrollToTop'))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' }}><div style={{ fontSize: 19, fontWeight: 800, color: T.text, letterSpacing: '-.3px' }}>Om oss</div></button>
       </div>
 
       {/* Logo hero */}

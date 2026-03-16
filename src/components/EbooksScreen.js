@@ -759,7 +759,8 @@ const SORT_OPTS = [
   { id:'favorites', label:'Favoriter' },
 ];
 
-function Library({ books, onSelect, T }) {
+function Library({ books, onSelect, onBack, T }) {
+  const scrollRef = useRef(null);
   const [cat,      setCat]      = useState('all');
   const [sort,     setSort]     = useState('newest');
   const [query,    setQuery]    = useState('');
@@ -788,15 +789,20 @@ function Library({ books, onSelect, T }) {
   const showSections = !query && cat === 'all';
 
   return (
-    <div style={{ background:T.bg, minHeight:'100%', fontFamily:'system-ui,sans-serif' }} onClick={() => setSortOpen(false)}>
+    <div ref={scrollRef} style={{ background:T.bg, minHeight:'100%', fontFamily:'system-ui,sans-serif' }} onClick={() => setSortOpen(false)}>
       <style>{`
         @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         ::-webkit-scrollbar{display:none}
         input::placeholder{color:${T.textMuted};opacity:.7}
       `}</style>
 
-      <div style={{ padding:'20px 16px 0' }}>
-        <h1 style={{ fontSize:27, fontWeight:800, color:T.text, margin:'0 0 16px', letterSpacing:'-.5px', fontFamily:"'Georgia',serif" }}>E-böcker</h1>
+      <div style={{ padding:'16px 16px 0', paddingTop:'max(16px, env(safe-area-inset-top))', position:'sticky', top:0, zIndex:20, background:T.bg, borderBottom:`1px solid ${T.border}` }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+          {onBack && <button onClick={onBack} style={{ background:'none', border:'none', cursor:'pointer', color:T.accent, fontSize:22, padding:'4px 8px 4px 0', lineHeight:1, fontWeight:300, WebkitTapHighlightColor:'transparent' }}>‹</button>}
+          <button onClick={() => window.dispatchEvent(new CustomEvent('scrollToTop'))} style={{ background:'none', border:'none', cursor:'pointer', padding:0, WebkitTapHighlightColor:'transparent' }}>
+            <h1 style={{ fontSize:27, fontWeight:800, color:T.text, margin:0, letterSpacing:'-.5px', fontFamily:"'Georgia',serif" }}>E-böcker</h1>
+          </button>
+        </div>
 
         <div style={{ position:'relative', marginBottom:12 }}>
           <svg style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.textMuted} strokeWidth="2.2" strokeLinecap="round">
@@ -1022,5 +1028,5 @@ export default function EbooksScreen({ onReaderOpen, onReaderClose, resetToLibra
     );
   }
 
-  return <Library books={books} onSelect={openDetail} T={T} />;
+  return <Library books={books} onSelect={openDetail} onBack={onBack} T={T} />;
 }
